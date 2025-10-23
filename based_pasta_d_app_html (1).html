@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Based Pasta Ristorante — dApp</title>
+  <style>
+    :root{
+      --bg1:#041633; --bg2:#0a2a66; --panel:#0b2f73; --panelBorder:#184a9d;
+      --text:#eef5ff; --muted:#a9c4ff; --accent:#5aa2ff; --cta:#e6f0ff;
+      --success:#a7f3d0; --error:#ffb4b4;
+      --radius:16px; --maxw:860px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(38,97,255,.25), transparent 50%),
+                  radial-gradient(1000px 900px at 80% 90%, rgba(15,92,255,.18), transparent 55%),
+                  linear-gradient(160deg, var(--bg1), var(--bg2));
+      color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    .card{
+      width:min(94vw,var(--maxw)); padding:20px 20px 24px;
+      background: linear-gradient(180deg, rgba(29,78,216,.18), rgba(23,37,84,.28));
+      border:1px solid var(--panelBorder); border-radius:var(--radius);
+      box-shadow: 0 20px 50px rgba(5,17,44,.45), inset 0 1px 0 rgba(255,255,255,.05);
+      position:relative; overflow:hidden;
+    }
+    .ribbon{
+      position:absolute; top:14px; right:-50px; transform:rotate(28deg);
+      background:linear-gradient(90deg,#7fb3ff,#2a73ff);
+      color:#041633; font-weight:900; letter-spacing:.6px; padding:8px 70px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.6);
+      text-transform:uppercase; font-size:12px;
+    }
+    .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .brand{ font-weight:900; letter-spacing:.3px; font-size:20px; }
+    .link{ color:var(--muted); text-decoration:none; font-size:13px; }
+    .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    .stat{
+      background:rgba(1,28,84,.45); border:1px solid var(--panelBorder); border-radius:14px; padding:12px;
+      text-align:center; backdrop-filter: blur(6px);
+    }
+    .stat .label{ font-size:12px; color:var(--muted); }
+    .stat .value{ font-size:22px; font-weight:800; letter-spacing:.4px; }
+    .cta{ display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:end; margin:18px 0 10px; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    input[type="text"], input[type="number"], select{
+      flex:1 1 220px; background:#07275f; color:var(--text);
+      border:1px solid var(--panelBorder); border-radius:12px; padding:12px 14px; outline:none;
+    }
+    input::placeholder{ color:#90b3ff; }
+    label{ font-size:12px; color:var(--muted); display:block; margin:0 0 6px; }
+    button{
+      cursor:pointer; border:none; border-radius:999px; padding:16px 22px; font-weight:900; letter-spacing:.3px; font-size:18px;
+      background:linear-gradient(180deg,#d9e8ff,#b6d3ff); color:#0a2366;
+      box-shadow: 0 14px 35px rgba(64,123,255,.35), inset 0 -4px 0 rgba(0,0,0,.08);
+      transition: transform .05s ease, filter .15s ease;
+    }
+    button:hover{ transform: translateY(-1px); filter:saturate(1.1); }
+    button:active{ transform: translateY(1px) scale(.99); }
+    .bigbutton{
+      width:100%; margin:12px 0 8px; padding:24px 28px; font-size:22px;
+      animation:pulse 1.9s infinite;
+    }
+    @keyframes pulse{
+      0%{ box-shadow:0 0 0 0 rgba(113,168,255,.45); }
+      70%{ box-shadow:0 0 0 18px rgba(113,168,255,0); }
+      100%{ box-shadow:0 0 0 0 rgba(113,168,255,0); }
+    }
+    .muted{ color:var(--muted); font-size:12px; }
+    .ok{ color:var(--success); }
+    .err{ color:var(--error); }
+    .feed{
+      margin-top:16px; max-height:330px; overflow:auto; padding:10px;
+      background:rgba(3,25,73,.55); border:1px solid var(--panelBorder); border-radius:14px; backdrop-filter: blur(6px);
+    }
+    .item{ padding:10px 8px; border-bottom:1px dashed rgba(122,165,255,.35); font-size:14px; display:flex; justify-content:space-between; gap:12px; }
+    .item:last-child{ border-bottom:none; }
+    .netbadge{
+      font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--panelBorder);
+      background:rgba(7,39,95,.6); color:var(--muted);
+    }
+    .note{ font-size:12px; color:#dfe9ff; margin-top:4px; }
+    .eta{ font-weight:700; letter-spacing:.3px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="ribbon">Tip your waiter on Base</div>
+    <div class="topbar">
+      <div>
+        <div class="brand">🍝 Based Pasta Ristorante</div>
+        <div class="muted">Order free pasta NFTs • message goes on-chain • tip speeds delivery</div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <span id="net" class="netbadge">Network: —</span>
+        <a id="explorerLink" class="link" href="#" target="_blank" rel="noopener">Contract on BaseScan ↗</a>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="label">Total orders</div><div class="value" id="totalPresses">—</div></div>
+      <div class="stat"><div class="label">Your orders</div><div class="value" id="yourPresses">—</div></div>
+      <div class="stat"><div class="label">Contract cooldown</div><div class="value" id="cooldown">—</div></div>
+      <div class="stat"><div class="label">ETA</div><div class="value eta" id="eta">—</div></div>
+    </div>
+    <div class="cta">
+      <div>
+        <label for="dish">Choose your pasta (free)</label>
+        <select id="dish">
+          <option value='{"name":"Pappardelle al Ragù","nft":"IT-PASTA-721","emoji":"🍝"}'>🍝 Pappardelle al Ragù — NFT IT-PASTA-721</option>
+          <option value='{"name":"Spaghetti alla Carbonara","nft":"IT-PASTA-110","emoji":"🥓"}'>🥓 Spaghetti alla Carbonara — NFT IT-PASTA-110</option>
+          <option value='{"name":"Penne all'Arrabbiata","nft":"IT-PASTA-404","emoji":"🌶️"}'>🌶️ Penne all'Arrabbiata — NFT IT-PASTA-404</option>
+          <option value='{"name":"Tagliatelle al Pesto","nft":"IT-PASTA-777","emoji":"🌿"}'>🌿 Tagliatelle al Pesto — NFT IT-PASTA-777</option>
+          <option value='{"name":"Gnocchi al Pomodoro","nft":"IT-PASTA-305","emoji":"🍅"}'>🍅 Gnocchi al Pomodoro — NFT IT-PASTA-305</option>
+          <option value='{"name":"Orecchiette cime di rapa","nft":"IT-PASTA-909","emoji":"🥬"}'>🥬 Orecchiette cime di rapa — NFT IT-PASTA-909</option>
+          <option value='{"name":"Lasagna della Nonna","nft":"IT-PASTA-515","emoji":"🧀"}'>🧀 Lasagna della Nonna — NFT IT-PASTA-515</option>
+        </select>
+        <div class="note">Your selection will be embedded in the on-chain message.</div>
+      </div>
+      <div>
+        <label for="message">Add a note (max 64 chars)</label>
+        <input id="message" type="text" maxlength="64" placeholder="Ex: extra parmesan, no pepper" />
+      </div>
+      <div>
+        <label for="tip">Tip in ETH (Base)</label>
+        <input id="tip" type="number" step="0.0001" min="0" placeholder="0 (free)" />
+        <div class="note">Tipping speeds delivery. More tip → faster ETA.</div>
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <button id="connect">Connect wallet</button>
+      </div>
+    </div>
+    <button id="press" class="bigbutton">🍽️ Place order (on-chain)</button>
+    <div id="status" class="muted">Status: not connected.</div>
+    <div id="share" style="display:none; margin-top:12px;">
+      <div class="stat" style="text-align:left;">
+        <div class="label">Your on-chain order (shareable)</div>
+        <div class="value" style="font-size:14px; font-weight:600; word-break:break-word; margin-top:6px;" id="orderSummary">—</div>
+        <div class="note" id="txInfo" style="margin-top:8px;">Tx: —</div>
+        <div class="row" style="margin-top:10px; gap:10px;">
+          <button id="copyOrder" style="padding:10px 16px; font-size:14px;">Copy order</button>
+          <a id="xShare" class="link" href="https://x.com/AnonimoCommando" target="_blank" rel="noopener" style="font-size:14px;">DM on X ↗</a>
+          <a id="debankShare" class="link" href="https://debank.com/profile/0x5d69c42a3a481d0ccfd88cfa8a2a08e2bf456134" target="_blank" rel="noopener" style="font-size:14px;">DM on DeBank ↗</a>
+        </div>
+        <div id="recipient" style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px;border:1px solid var(--panelBorder);border-radius:12px;background:rgba(7,39,95,.35);">
+          <img id="ensAvatar" alt="ENS avatar" src="" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.4);object-fit:cover;background:#073;"/>
+          <div style="display:flex;flex-direction:column;">
+            <strong id="ensName">pappardelle.eth</strong>
+            <span class="muted" id="ensAddr">Resolving…</span>
+          </div>
+        </div>
+        <div class="note">Use <em>Copy order</em> then paste into DM to <strong>pappardelle.eth</strong>.</div>
+      </div>
+    </div>
+    <div class="feed" id="feed"></div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+  <script>
+    const NETWORK = "base";
+    const CHAINS = {
+      "base": { chainIdHex:"0x2105", name:"Base", currency:{name:"ETH",symbol:"ETH",decimals:18}, rpcUrls:["https://mainnet.base.org"], blockExplorer:"https://basescan.org", explorerAddr:"https://basescan.org/address/" }
+    };
+    const CONTRACT_ADDRESS = "0x37e3a8d3ba53f43d955F83B54cBE4C0d39A10b83";
+    const ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"}];
+    let provider,signer,contract,currentAccount,lastShareText="";
+    const $=id=>document.getElementById(id);
+    const NET=CHAINS[NETWORK];
+    function status(t){$("status").textContent=t;}
+
+    async function press(){
+      const msg="Pasta order"; const tip="0"; const txHash="0x123";
+      renderShare(msg,tip,txHash);
+    }
+
+    function renderShare(msg,tip,txHash){
+      const explorer=NET.blockExplorer+"/tx/"+txHash;
+      $("orderSummary").textContent=`Order: ${msg} | Tip: ${tip} ETH | Tx: ${txHash}`;
+      $("txInfo").innerHTML=`Tx: <a href='${explorer}' target='_blank' class='link'>view on BaseScan ↗</a>`;
+      $("share").style.display="block";
+    }
+
+    async function resolveRecipient(){
+      try{
+        const mainnet=ethers.getDefaultProvider("mainnet");
+        const name="pappardelle.eth";
+        const addr=await mainnet.resolveName(name);
+        const avatar=await mainnet.getAvatar(name);
+        if(avatar) $("ensAvatar").src=avatar; else $("ensAvatar").style.display="none";
+        $("ensName").textContent=name;
+        $("ensAddr").textContent=addr?(addr.slice(0,6)+"…"+addr.slice(-4)):"Not found";
+      }catch(e){
+        $("ensAddr").textContent="ENS lookup failed";
+        $("ensAvatar").style.display="none";
+      }
+    }
+
+    $("copyOrder").onclick=()=>navigator.clipboard.writeText($("orderSummary").textContent);
+
+    resolveRecipient();
+  </script>
+</body>
+</html>
