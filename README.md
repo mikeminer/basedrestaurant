@@ -28,7 +28,7 @@ Users can order NFT-based pasta dishes, send on-chain messages, and tip the wait
 
 ### 1️⃣ Clone the repo
 ```bash
-git clone https://github.com/mikeminer/based-pasta-dapp.git
+git clone https://github.com/mikeminer/basedrestaurant.git
 cd based-pasta-dapp
 ```
 
