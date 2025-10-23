@@ -88,35 +88,39 @@
 <body>
   <div class="card">
     <div class="ribbon">Tip your waiter on Base</div>
+
     <div class="topbar">
       <div>
         <div class="brand">🍝 Based Pasta Ristorante</div>
-        <div class="muted">Order free pasta NFTs • message goes on-chain • tip speeds delivery</div>
+        <div class="muted">Order free pasta NFTs • message goes on‑chain • tip speeds delivery</div>
       </div>
       <div style="display:flex; gap:10px; align-items:center;">
         <span id="net" class="netbadge">Network: —</span>
         <a id="explorerLink" class="link" href="#" target="_blank" rel="noopener">Contract on BaseScan ↗</a>
       </div>
     </div>
+
     <div class="stats">
       <div class="stat"><div class="label">Total orders</div><div class="value" id="totalPresses">—</div></div>
       <div class="stat"><div class="label">Your orders</div><div class="value" id="yourPresses">—</div></div>
       <div class="stat"><div class="label">Contract cooldown</div><div class="value" id="cooldown">—</div></div>
       <div class="stat"><div class="label">ETA</div><div class="value eta" id="eta">—</div></div>
     </div>
+
     <div class="cta">
       <div>
         <label for="dish">Choose your pasta (free)</label>
         <select id="dish">
-          <option value='{"name":"Pappardelle al Ragù","nft":"IT-PASTA-721","emoji":"🍝"}'>🍝 Pappardelle al Ragù — NFT IT-PASTA-721</option>
-          <option value='{"name":"Spaghetti alla Carbonara","nft":"IT-PASTA-110","emoji":"🥓"}'>🥓 Spaghetti alla Carbonara — NFT IT-PASTA-110</option>
-          <option value='{"name":"Penne all'Arrabbiata","nft":"IT-PASTA-404","emoji":"🌶️"}'>🌶️ Penne all'Arrabbiata — NFT IT-PASTA-404</option>
-          <option value='{"name":"Tagliatelle al Pesto","nft":"IT-PASTA-777","emoji":"🌿"}'>🌿 Tagliatelle al Pesto — NFT IT-PASTA-777</option>
-          <option value='{"name":"Gnocchi al Pomodoro","nft":"IT-PASTA-305","emoji":"🍅"}'>🍅 Gnocchi al Pomodoro — NFT IT-PASTA-305</option>
-          <option value='{"name":"Orecchiette cime di rapa","nft":"IT-PASTA-909","emoji":"🥬"}'>🥬 Orecchiette cime di rapa — NFT IT-PASTA-909</option>
-          <option value='{"name":"Lasagna della Nonna","nft":"IT-PASTA-515","emoji":"🧀"}'>🧀 Lasagna della Nonna — NFT IT-PASTA-515</option>
+          <!-- NFT-like codes for vibes -->
+          <option value='{"name":"Pappardelle al Ragù","nft":"IT-PASTA-721","emoji":"🍝"}'>🍝 Pappardelle al Ragù — NFT IT‑PASTA‑721</option>
+          <option value='{"name":"Spaghetti alla Carbonara","nft":"IT-PASTA-110","emoji":"🥓"}'>🥓 Spaghetti alla Carbonara — NFT IT‑PASTA‑110</option>
+          <option value='{"name":"Penne all'Arrabbiata","nft":"IT-PASTA-404","emoji":"🌶️"}'>🌶️ Penne all'Arrabbiata — NFT IT‑PASTA‑404</option>
+          <option value='{"name":"Tagliatelle al Pesto","nft":"IT-PASTA-777","emoji":"🌿"}'>🌿 Tagliatelle al Pesto — NFT IT‑PASTA‑777</option>
+          <option value='{"name":"Gnocchi al Pomodoro","nft":"IT-PASTA-305","emoji":"🍅"}'>🍅 Gnocchi al Pomodoro — NFT IT‑PASTA‑305</option>
+          <option value='{"name":"Orecchiette cime di rapa","nft":"IT-PASTA-909","emoji":"🥬"}'>🥬 Orecchiette cime di rapa — NFT IT‑PASTA‑909</option>
+          <option value='{"name":"Lasagna della Nonna","nft":"IT-PASTA-515","emoji":"🧀"}'>🧀 Lasagna della Nonna — NFT IT‑PASTA‑515</option>
         </select>
-        <div class="note">Your selection will be embedded in the on-chain message.</div>
+        <div class="note">Your selection will be embedded in the on‑chain message.</div>
       </div>
       <div>
         <label for="message">Add a note (max 64 chars)</label>
@@ -131,73 +135,199 @@
         <button id="connect">Connect wallet</button>
       </div>
     </div>
-    <button id="press" class="bigbutton">🍽️ Place order (on-chain)</button>
+
+    <button id="press" class="bigbutton">🍽️ Place order (on‑chain)</button>
     <div id="status" class="muted">Status: not connected.</div>
-    <div id="share" style="display:none; margin-top:12px;">
-      <div class="stat" style="text-align:left;">
-        <div class="label">Your on-chain order (shareable)</div>
-        <div class="value" style="font-size:14px; font-weight:600; word-break:break-word; margin-top:6px;" id="orderSummary">—</div>
-        <div class="note" id="txInfo" style="margin-top:8px;">Tx: —</div>
-        <div class="row" style="margin-top:10px; gap:10px;">
-          <button id="copyOrder" style="padding:10px 16px; font-size:14px;">Copy order</button>
-          <a id="xShare" class="link" href="https://x.com/AnonimoCommando" target="_blank" rel="noopener" style="font-size:14px;">DM on X ↗</a>
-          <a id="debankShare" class="link" href="https://debank.com/profile/0x5d69c42a3a481d0ccfd88cfa8a2a08e2bf456134" target="_blank" rel="noopener" style="font-size:14px;">DM on DeBank ↗</a>
-        </div>
-        <div id="recipient" style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px;border:1px solid var(--panelBorder);border-radius:12px;background:rgba(7,39,95,.35);">
-          <img id="ensAvatar" alt="ENS avatar" src="" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.4);object-fit:cover;background:#073;"/>
-          <div style="display:flex;flex-direction:column;">
-            <strong id="ensName">pappardelle.eth</strong>
-            <span class="muted" id="ensAddr">Resolving…</span>
-          </div>
-        </div>
-        <div class="note">Use <em>Copy order</em> then paste into DM to <strong>pappardelle.eth</strong>.</div>
-      </div>
-    </div>
     <div class="feed" id="feed"></div>
   </div>
+
+  <!-- Ethers v6 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
   <script>
-    const NETWORK = "base";
+    // ===== CONFIG =====
+    // Choose network: "base" for Mainnet (8453) or "base-sepolia" for test (84532)
+    const NETWORK = "base"; // change to "base" when live
+
     const CHAINS = {
-      "base": { chainIdHex:"0x2105", name:"Base", currency:{name:"ETH",symbol:"ETH",decimals:18}, rpcUrls:["https://mainnet.base.org"], blockExplorer:"https://basescan.org", explorerAddr:"https://basescan.org/address/" }
+      "base": {
+        chainIdHex: "0x2105", // 8453
+        name: "Base",
+        currency: { name: "ETH", symbol: "ETH", decimals: 18 },
+        rpcUrls: ["https://mainnet.base.org"],
+        blockExplorer: "https://basescan.org",
+        explorerAddr: "https://basescan.org/address/"
+      },
+      "base-sepolia": {
+        chainIdHex: "0x14A34", // 84532
+        name: "Base Sepolia",
+        currency: { name: "ETH", symbol: "ETH", decimals: 18 },
+        rpcUrls: ["https://sepolia.base.org"],
+        blockExplorer: "https://sepolia.basescan.org",
+        explorerAddr: "https://sepolia.basescan.org/address/"
+      }
     };
+
+    // Paste your deployed contract address on Base / Base Sepolia
     const CONTRACT_ADDRESS = "0x37e3a8d3ba53f43d955F83B54cBE4C0d39A10b83";
-    const ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"}];
-    let provider,signer,contract,currentAccount,lastShareText="";
-    const $=id=>document.getElementById(id);
-    const NET=CHAINS[NETWORK];
-    function status(t){$("status").textContent=t;}
 
-    async function press(){
-      const msg="Pasta order"; const tip="0"; const txHash="0x123";
-      renderShare(msg,tip,txHash);
+    // ABI expects: press(string message) payable; events include tip amount
+    const ABI = [
+      {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+      {"anonymous":false,"inputs":[
+        {"indexed":true,"internalType":"address","name":"user","type":"address"},
+        {"indexed":false,"internalType":"uint256","name":"totalPresses","type":"uint256"},
+        {"indexed":false,"internalType":"uint256","name":"userPresses","type":"uint256"},
+        {"indexed":false,"internalType":"string","name":"message","type":"string"},
+        {"indexed":false,"internalType":"uint256","name":"tip","type":"uint256"}
+      ],"name":"Pressed","type":"event"},
+      {"inputs":[],"name":"cooldownSeconds","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"string","name":"message_","type":"string"}],"name":"press","outputs":[],"stateMutability":"payable","type":"function"},
+      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"presses","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"totalPresses","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+    ];
+
+    // ===== STATE =====
+    let provider, signer, contract, currentAccount, countdownTimer;
+    const $ = id => document.getElementById(id);
+    const statusEl = $("status"), feedEl = $("feed"), etaEl = $("eta");
+    const NET = CHAINS[NETWORK];
+    $("net").textContent = "Network: " + NET.name;
+    $("explorerLink").href = NET.explorerAddr + CONTRACT_ADDRESS;
+
+    function status(t, err=false){ statusEl.textContent = "Status: " + t; statusEl.className = err ? "err" : "ok"; }
+    function escapeHtml(str){ return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[s])); }
+    function addFeedItem({user,total,userPresses,message,tip}){
+      const el = document.createElement("div");
+      el.className="item";
+      const short = user.slice(0,6)+"…"+user.slice(-4);
+      el.innerHTML = `<div><strong>${short}</strong> — ${message?`“${escapeHtml(message)}”` : "no msg"}<div class="muted">Orders by user: ${userPresses} • Tip: ${tip}</div></div><div>#${total}</div>`;
+      feedEl.prepend(el);
+      while(feedEl.children.length>100) feedEl.removeChild(feedEl.lastChild);
     }
 
-    function renderShare(msg,tip,txHash){
-      const explorer=NET.blockExplorer+"/tx/"+txHash;
-      $("orderSummary").textContent=`Order: ${msg} | Tip: ${tip} ETH | Tx: ${txHash}`;
-      $("txInfo").innerHTML=`Tx: <a href='${explorer}' target='_blank' class='link'>view on BaseScan ↗</a>`;
-      $("share").style.display="block";
+    function computeEtaSeconds(tipEth){
+      const t = Number(tipEth || 0);
+      // tiers (demo logic): more tip, faster delivery
+      if(t >= 0.02) return 5*60;      // 5 min
+      if(t >= 0.005) return 12*60;    // 12 min
+      if(t > 0) return 18*60;         // 18 min
+      return 20*60;                   // free = 20 min
     }
 
-    async function resolveRecipient(){
+    function startEtaCountdown(sec){
+      clearInterval(countdownTimer);
+      function render(s){
+        const m = Math.floor(s/60), r = s%60; etaEl.textContent = `${m}m ${r}s`; }
+      let s = sec; render(s);
+      countdownTimer = setInterval(()=>{ s--; if(s<=0){ clearInterval(countdownTimer); etaEl.textContent = "arrived"; return; } render(s); }, 1000);
+    }
+
+    async function ensureBaseSelected(){
+      if(!window.ethereum) throw new Error("Install a wallet (MetaMask / Coinbase Wallet).");
+      const target = NET;
       try{
-        const mainnet=ethers.getDefaultProvider("mainnet");
-        const name="pappardelle.eth";
-        const addr=await mainnet.resolveName(name);
-        const avatar=await mainnet.getAvatar(name);
-        if(avatar) $("ensAvatar").src=avatar; else $("ensAvatar").style.display="none";
-        $("ensName").textContent=name;
-        $("ensAddr").textContent=addr?(addr.slice(0,6)+"…"+addr.slice(-4)):"Not found";
+        await window.ethereum.request({ method:"wallet_switchEthereumChain", params:[{ chainId: target.chainIdHex }] });
       }catch(e){
-        $("ensAddr").textContent="ENS lookup failed";
-        $("ensAvatar").style.display="none";
+        if(e && e.code === 4902){
+          await window.ethereum.request({
+            method:"wallet_addEthereumChain",
+            params:[{
+              chainId: target.chainIdHex,
+              chainName: target.name,
+              nativeCurrency: target.currency,
+              rpcUrls: target.rpcUrls,
+              blockExplorerUrls: [target.blockExplorer]
+            }]
+          });
+        }else{ throw e; }
       }
     }
 
-    $("copyOrder").onclick=()=>navigator.clipboard.writeText($("orderSummary").textContent);
+    async function connect(){
+      try{
+        await ensureBaseSelected();
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        currentAccount = await signer.getAddress();
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+        $("connect").textContent = "Connected";
+        $("connect").disabled = true;
+        status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)}`);
+        await refreshStats();
+        subscribe();
+      }catch(err){
+        status((err && err.message) || String(err), true);
+      }
+    }
 
-    resolveRecipient();
+    async function refreshStats(){
+      if(!contract) return;
+      const [total, mine, cd] = await Promise.all([
+        contract.totalPresses(),
+        currentAccount ? contract.presses(currentAccount) : 0,
+        contract.cooldownSeconds()
+      ]);
+      $("totalPresses").textContent = total.toString();
+      $("yourPresses").textContent = mine.toString();
+      $("cooldown").textContent = cd.toString() + "s";
+    }
+
+    function subscribe(){
+      contract.on("Pressed", (user, totalPresses, userPresses, message, tip) => {
+        addFeedItem({
+          user,
+          total: totalPresses.toString(),
+          userPresses: userPresses.toString(),
+          message,
+          tip: tip ? ethers.formatEther(tip) + " ETH" : "0"
+        });
+        $("totalPresses").textContent = totalPresses.toString();
+        if(currentAccount && user.toLowerCase() === currentAccount.toLowerCase()){
+          $("yourPresses").textContent = userPresses.toString();
+        }
+      });
+    }
+
+    function buildOnchainMessage(){
+      const dishObj = JSON.parse($("dish").value);
+      const note = $("message").value.trim();
+      // Compose: ORDER|dish|nft|note (<=64 chars)
+      const base = `ORDER:${dishObj.name}|NFT:${dishObj.nft}`;
+      const withNote = note ? `${base}|NOTE:${note}` : base;
+      // Ensure 64 chars max (contract limit)
+      return withNote.length > 64 ? withNote.slice(0,64) : withNote;
+    }
+
+    async function press(){
+      if(!contract) return status("Connect your wallet first.", true);
+      try{
+        const msg = buildOnchainMessage();
+        const tipEth = $("tip").value ? $("tip").value.trim() : "0";
+        const tx = await contract.press(msg, { value: ethers.parseEther(tipEth || "0") });
+        const etaSeconds = computeEtaSeconds(tipEth);
+        startEtaCountdown(etaSeconds);
+        status("Transaction sent… waiting for confirmation");
+        await tx.wait();
+        status("🍝 Order placed! Buon appetito.");
+      }catch(err){
+        const reason = (err && err.shortMessage) || (err && err.message) || String(err);
+        status("Error: " + reason, true);
+      }
+    }
+
+    $("connect").addEventListener("click", connect);
+    $("press").addEventListener("click", press);
+
+    // Autoconnect if already authorized and on the correct network
+    (async function auto(){
+      if(window.ethereum){
+        const accs = await window.ethereum.request({ method:"eth_accounts" });
+        if(accs && accs.length){
+          try{ await ensureBaseSelected(); connect(); }catch(_){}
+        }
+      }
+    })();
   </script>
 </body>
 </html>
