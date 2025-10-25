@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Based Pasta Ristorante — dApp</title>
+  <style>
+    :root{
+      --bg1:#041633; --bg2:#0a2a66; --panel:#0b2f73; --panelBorder:#184a9d;
+      --text:#eef5ff; --muted:#a9c4ff; --accent:#5aa2ff; --cta:#e6f0ff;
+      --success:#a7f3d0; --error:#ffb4b4;
+      --radius:16px; --maxw:860px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(38,97,255,.25), transparent 50%),
+                  radial-gradient(1000px 900px at 80% 90%, rgba(15,92,255,.18), transparent 55%),
+                  linear-gradient(160deg, var(--bg1), var(--bg2));
+      color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    .card{
+      width:min(94vw,var(--maxw)); padding:20px 20px 24px;
+      background: linear-gradient(180deg, rgba(29,78,216,.18), rgba(23,37,84,.28));
+      border:1px solid var(--panelBorder); border-radius:var(--radius);
+      box-shadow: 0 20px 50px rgba(5,17,44,.45), inset 0 1px 0 rgba(255,255,255,.05);
+      position:relative; overflow:hidden;
+    }
+    .ribbon{
+      position:absolute; top:14px; right:-50px; transform:rotate(28deg);
+      background:linear-gradient(90deg,#7fb3ff,#2a73ff);
+      color:#041633; font-weight:900; letter-spacing:.6px; padding:8px 70px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.6);
+      text-transform:uppercase; font-size:12px;
+    }
+    .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .brand{ font-weight:900; letter-spacing:.3px; font-size:20px; }
+    .link{ color:var(--muted); text-decoration:none; font-size:13px; }
+    .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    .stat{
+      background:rgba(1,28,84,.45); border:1px solid var(--panelBorder); border-radius:14px; padding:12px;
+      text-align:center; backdrop-filter: blur(6px);
+    }
+    .stat .label{ font-size:12px; color:var(--muted); }
+    .stat .value{ font-size:22px; font-weight:800; letter-spacing:.4px; }
+    .cta{ display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:end; margin:18px 0 10px; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    input[type="text"], input[type="number"], select{
+      flex:1 1 220px; background:#07275f; color:var(--text);
+      border:1px solid var(--panelBorder); border-radius:12px; padding:12px 14px; outline:none;
+    }
+    input::placeholder{ color:#90b3ff; }
+    label{ font-size:12px; color:var(--muted); display:block; margin:0 0 6px; }
+    button{
+      cursor:pointer; border:none; border-radius:999px; padding:16px 22px; font-weight:900; letter-spacing:.3px; font-size:18px;
+      background:linear-gradient(180deg,#d9e8ff,#b6d3ff); color:#0a2366;
+      box-shadow: 0 14px 35px rgba(64,123,255,.35), inset 0 -4px 0 rgba(0,0,0,.08);
+      transition: transform .05s ease, filter .15s ease;
+    }
+    button:hover{ transform: translateY(-1px); filter:saturate(1.1); }
+    button:active{ transform: translateY(1px) scale(.99); }
+    .bigbutton{
+      width:100%; margin:12px 0 8px; padding:24px 28px; font-size:22px;
+      animation:pulse 1.9s infinite;
+    }
+    @keyframes pulse{
+      0%{ box-shadow:0 0 0 0 rgba(113,168,255,.45); }
+      70%{ box-shadow:0 0 0 18px rgba(113,168,255,0); }
+      100%{ box-shadow:0 0 0 0 rgba(113,168,255,0); }
+    }
+    .muted{ color:var(--muted); font-size:12px; }
+    .ok{ color:var(--success); }
+    .err{ color:var(--error); }
+    .feed{
+      margin-top:16px; max-height:330px; overflow:auto; padding:10px;
+      background:rgba(3,25,73,.55); border:1px solid var(--panelBorder); border-radius:14px; backdrop-filter: blur(6px);
+    }
+    .item{ padding:10px 8px; border-bottom:1px dashed rgba(122,165,255,.35); font-size:14px; display:flex; justify-content:space-between; gap:12px; }
+    .item:last-child{ border-bottom:none; }
+    .netbadge{
+      font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--panelBorder);
+      background:rgba(7,39,95,.6); color:var(--muted);
+    }
+    .note{ font-size:12px; color:#dfe9ff; margin-top:4px; }
+    .eta{ font-weight:700; letter-spacing:.3px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="ribbon">Tip your waiter on Base</div>
+
+    <div class="topbar">
+      <div>
+        <div class="brand">🍝 Based Pasta Ristorante</div>
+        <div class="muted">Order free pasta NFTs • message goes on-chain • tip speeds delivery</div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <span id="net" class="netbadge">Network: —</span>
+        <a id="explorerLink" class="link" href="#" target="_blank" rel="noopener">Contract on BaseScan ↗</a>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="label">Total orders</div><div class="value" id="totalPresses">—</div></div>
+      <div class="stat"><div class="label">Your orders</div><div class="value" id="yourPresses">—</div></div>
+      <div class="stat"><div class="label">Contract cooldown</div><div class="value" id="cooldown">—</div></div>
+      <div class="stat"><div class="label">ETA</div><div class="value eta" id="eta">—</div></div>
+    </div>
+
+    <div class="cta">
+      <div>
+        <label for="dish">Choose your pasta (free)</label>
+        <select id="dish">
+          <!-- NFT-like codes for vibes -->
+          <option value='{"name":"Pappardelle al Ragù","nft":"IT-PASTA-721","emoji":"🍝"}'>🍝 Pappardelle al Ragù — NFT IT-PASTA-721</option>
+          <option value='{"name":"Spaghetti alla Carbonara","nft":"IT-PASTA-110","emoji":"🥓"}'>🥓 Spaghetti alla Carbonara — NFT IT-PASTA-110</option>
+          <option value='{"name":"Penne all'Arrabbiata","nft":"IT-PASTA-404","emoji":"🌶️"}'>🌶️ Penne all'Arrabbiata — NFT IT-PASTA-404</option>
+          <option value='{"name":"Tagliatelle al Pesto","nft":"IT-PASTA-777","emoji":"🌿"}'>🌿 Tagliatelle al Pesto — NFT IT-PASTA-777</option>
+          <option value='{"name":"Gnocchi al Pomodoro","nft":"IT-PASTA-305","emoji":"🍅"}'>🍅 Gnocchi al Pomodoro — NFT IT-PASTA-305</option>
+          <option value='{"name":"Orecchiette cime di rapa","nft":"IT-PASTA-909","emoji":"🥬"}'>🥬 Orecchiette cime di rapa — NFT IT-PASTA-909</option>
+          <option value='{"name":"Lasagna della Nonna","nft":"IT-PASTA-515","emoji":"🧀"}'>🧀 Lasagna della Nonna — NFT IT-PASTA-515</option>
+        </select>
+        <div class="note">Your selection will be embedded in the on-chain message.</div>
+      </div>
+      <div>
+        <label for="message">Add a note (max 64 chars)</label>
+        <input id="message" type="text" maxlength="64" placeholder="Ex: extra parmesan, no pepper" />
+      </div>
+      <div>
+        <label for="tip">Tip in ETH (Base)</label>
+        <input id="tip" type="number" step="0.0001" min="0" placeholder="0 (free)" />
+        <div class="note">Tipping speeds delivery. More tip → faster ETA.</div>
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <button id="connect">Connect wallet</button>
+      </div>
+    </div>
+
+    <button id="press" class="bigbutton">🍽️ Place order (on-chain)</button>
+    <div id="status" class="muted">Status: not connected.</div>
+    <div class="feed" id="feed"></div>
+  </div>
+
+  <!-- Modal scelta wallet (EIP-6963) -->
+  <div id="walletModal" style="display:none; position:fixed; inset:0; backdrop-filter:blur(2px);
+    background:rgba(0,0,0,.35); align-items:center; justify-content:center; z-index:9999;">
+    <div style="background:#0b2f73; border:1px solid #184a9d; border-radius:16px; width:min(92vw,420px); padding:16px;">
+      <div style="font-weight:900; margin-bottom:8px;">Seleziona un wallet</div>
+      <div id="walletList" style="display:grid; gap:8px;"></div>
+      <div style="text-align:right; margin-top:10px;">
+        <button id="closeWalletModal" style="padding:10px 14px; font-weight:700;">Annulla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ethers v6 -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+  <script>
+    // ===== CONFIG =====
+    // Choose network: "base" for Mainnet (8453) or "base-sepolia" for test (84532)
+    const NETWORK = "base"; // change to "base" when live
+
+    const CHAINS = {
+      "base": {
+        chainIdHex: "0x2105", // 8453
+        name: "Base",
+        currency: { name: "ETH", symbol: "ETH", decimals: 18 },
+        rpcUrls: ["https://mainnet.base.org"],
+        blockExplorer: "https://basescan.org",
+        explorerAddr: "https://basescan.org/address/"
+      },
+      "base-sepolia": {
+        chainIdHex: "0x14A34", // 84532
+        name: "Base Sepolia",
+        currency: { name: "ETH", symbol: "ETH", decimals: 18 },
+        rpcUrls: ["https://sepolia.base.org"],
+        blockExplorer: "https://sepolia.basescan.org",
+        explorerAddr: "https://sepolia.basescan.org/address/"
+      }
+    };
+
+    // Paste your deployed contract address on Base / Base Sepolia
+    const CONTRACT_ADDRESS = "0x37e3a8d3ba53f43d955F83B54cBE4C0d39A10b83";
+
+    // ABI expects: press(string message) payable; events include tip amount
+    const ABI = [
+      {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+      {"anonymous":false,"inputs":[
+        {"indexed":true,"internalType":"address","name":"user","type":"address"},
+        {"indexed":false,"internalType":"uint256","name":"totalPresses","type":"uint256"},
+        {"indexed":false,"internalType":"uint256","name":"userPresses","type":"uint256"},
+        {"indexed":false,"internalType":"string","name":"message","type":"string"},
+        {"indexed":false,"internalType":"uint256","name":"tip","type":"uint256"}
+      ],"name":"Pressed","type":"event"},
+      {"inputs":[],"name":"cooldownSeconds","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"string","name":"message_","type":"string"}],"name":"press","outputs":[],"stateMutability":"payable","type":"function"},
+      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"presses","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"totalPresses","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+    ];
+
+    // ===== STATE & UTIL =====
+    let provider, signer, contract, currentAccount, countdownTimer;
+    const $ = id => document.getElementById(id);
+    const statusEl = $("status"), feedEl = $("feed"), etaEl = $("eta");
+    const NET = CHAINS[NETWORK];
+    $("net").textContent = "Network: " + NET.name;
+    $("explorerLink").href = NET.explorerAddr + CONTRACT_ADDRESS;
+
+    function status(t, err=false){ statusEl.textContent = "Status: " + t; statusEl.className = err ? "err" : "ok"; }
+    function escapeHtml(str){ return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[s])); }
+    function addFeedItem({user,total,userPresses,message,tip}){
+      const el = document.createElement("div");
+      el.className="item";
+      const short = user.slice(0,6)+"…"+user.slice(-4);
+      el.innerHTML = `<div><strong>${short}</strong> — ${message?`“${escapeHtml(message)}”` : "no msg"}<div class="muted">Orders by user: ${userPresses} • Tip: ${tip}</div></div><div>#${total}</div>`;
+      feedEl.prepend(el);
+      while(feedEl.children.length>100) feedEl.removeChild(feedEl.lastChild);
+    }
+
+    function computeEtaSeconds(tipEth){
+      const t = Number(tipEth || 0);
+      if(t >= 0.02) return 5*60;
+      if(t >= 0.005) return 12*60;
+      if(t > 0) return 18*60;
+      return 20*60;
+    }
+
+    function startEtaCountdown(sec){
+      clearInterval(countdownTimer);
+      function render(s){
+        const m = Math.floor(s/60), r = s%60; etaEl.textContent = `${m}m ${r}s`; }
+      let s = sec; render(s);
+      countdownTimer = setInterval(()=>{ s--; if(s<=0){ clearInterval(countdownTimer); etaEl.textContent = "arrived"; return; } render(s); }, 1000);
+    }
+
+    // ===== EIP-6963: multi-wallet discovery & selection =====
+    const ALLOWED_WALLETS_RDNS = [
+      'io.metamask',          // MetaMask
+      'com.coinbase.wallet',  // Coinbase / Base Wallet
+      'io.zerion.wallet',     // Zerion
+      'com.okex.wallet',      // OKX
+      'com.okx.web3.wallet',  // OKX alt
+      'me.rainbow'            // Rainbow
+    ];
+
+    const discovered = new Map(); // uuid -> detail { info, provider }
+    const walletModal = document.getElementById('walletModal');
+    const walletList  = document.getElementById('walletList');
+    const closeWalletModalBtn = document.getElementById('closeWalletModal');
+
+    function openWalletModal(){
+      if (discovered.size === 0 && window.ethereum) {
+        connectWithProvider(window.ethereum);
+        return;
+      }
+      walletList.innerHTML = '';
+      const items = Array.from(discovered.values())
+        .filter(d => ALLOWED_WALLETS_RDNS.includes(d.info.rdns))
+        .sort((a,b) => a.info.name.localeCompare(b.info.name));
+
+      if (items.length === 0 && !window.ethereum) {
+        status("Nessun wallet compatibile trovato.", true);
+        return;
+      }
+      if (items.length === 1) {
+        connectWithProvider(items[0].provider);
+        return;
+      }
+      for (const d of items) {
+        const btn = document.createElement('button');
+        btn.textContent = `${d.info.name}`;
+        btn.style = "text-align:left; padding:12px 14px; border-radius:12px; border:1px solid #184a9d; background:#07275f; color:#eef5ff; font-weight:800;";
+        btn.onclick = () => { closeWalletModal(); connectWithProvider(d.provider); };
+        walletList.appendChild(btn);
+      }
+      walletModal.style.display = 'flex';
+    }
+    function closeWalletModal(){ walletModal.style.display = 'none'; }
+    closeWalletModalBtn.onclick = closeWalletModal;
+
+    window.addEventListener('eip6963:announceProvider', (event) => {
+      const detail = event.detail;
+      if (!detail || !detail.info || !detail.provider) return;
+      if (!discovered.has(detail.info.uuid)) discovered.set(detail.info.uuid, detail);
+    });
+    try { window.dispatchEvent(new Event('eip6963:requestProvider')); } catch(_) {}
+
+    // ===== Chain switch & connect usando provider selezionato =====
+    async function ensureBaseSelectedOn(providerEth){
+      const target = NET;
+      try{
+        await providerEth.request({ method:"wallet_switchEthereumChain", params:[{ chainId: target.chainIdHex }] });
+      }catch(e){
+        if(e && e.code === 4902){
+          await providerEth.request({
+            method:"wallet_addEthereumChain",
+            params:[{
+              chainId: target.chainIdHex,
+              chainName: target.name,
+              nativeCurrency: target.currency,
+              rpcUrls: target.rpcUrls,
+              blockExplorerUrls: [target.blockExplorer]
+            }]
+          });
+        }else{ throw e; }
+      }
+    }
+
+    async function connectWithProvider(providerEth){
+      try{
+        await ensureBaseSelectedOn(providerEth);
+        provider = new ethers.BrowserProvider(providerEth);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        currentAccount = await signer.getAddress();
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+        $("connect").textContent = "Connected";
+        $("connect").disabled = true;
+        status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)}`);
+        await refreshStats();
+        subscribe();
+      }catch(err){
+        status((err && err.message) || String(err), true);
+      }
+    }
+
+    // ===== App logic (immutata) =====
+    async function refreshStats(){
+      if(!contract) return;
+      const [total, mine, cd] = await Promise.all([
+        contract.totalPresses(),
+        currentAccount ? contract.presses(currentAccount) : 0,
+        contract.cooldownSeconds()
+      ]);
+      $("totalPresses").textContent = total.toString();
+      $("yourPresses").textContent = mine.toString();
+      $("cooldown").textContent = cd.toString() + "s";
+    }
+
+    function subscribe(){
+      contract.on("Pressed", (user, totalPresses, userPresses, message, tip) => {
+        addFeedItem({
+          user,
+          total: totalPresses.toString(),
+          userPresses: userPresses.toString(),
+          message,
+          tip: tip ? ethers.formatEther(tip) + " ETH" : "0"
+        });
+        $("totalPresses").textContent = totalPresses.toString();
+        if(currentAccount && user.toLowerCase() === currentAccount.toLowerCase()){
+          $("yourPresses").textContent = userPresses.toString();
+        }
+      });
+    }
+
+    function buildOnchainMessage(){
+      const dishObj = JSON.parse($("dish").value);
+      const note = $("message").value.trim();
+      const base = `ORDER:${dishObj.name}|NFT:${dishObj.nft}`;
+      const withNote = note ? `${base}|NOTE:${note}` : base;
+      return withNote.length > 64 ? withNote.slice(0,64) : withNote;
+    }
+
+    async function press(){
+      if(!contract) return status("Connect your wallet first.", true);
+      try{
+        const msg = buildOnchainMessage();
+        const tipEth = $("tip").value ? $("tip").value.trim() : "0";
+        const tx = await contract.press(msg, { value: ethers.parseEther(tipEth || "0") });
+        const etaSeconds = computeEtaSeconds(tipEth);
+        startEtaCountdown(etaSeconds);
+        status("Transaction sent… waiting for confirmation");
+        await tx.wait();
+        status("🍝 Order placed! Buon appetito.");
+      }catch(err){
+        const reason = (err && err.shortMessage) || (err && err.message) || String(err);
+        status("Error: " + reason, true);
+      }
+    }
+
+    // ===== Event binding =====
+    $("connect").addEventListener("click", () => openWalletModal());
+    $("press").addEventListener("click", press);
+
+    // ===== Autoconnect (opzionale) =====
+    // Prova prima i wallet scoperti via EIP-6963, poi window.ethereum
+    setTimeout(async () => {
+      // prova provider già autorizzati tra i discovered
+      for (const d of discovered.values()) {
+        try {
+          const accs = await d.provider.request({ method:"eth_accounts" });
+          if (accs && accs.length) { await connectWithProvider(d.provider); return; }
+        } catch(_) {}
+      }
+      // fallback
+      if(window.ethereum){
+        try{
+          const accs = await window.ethereum.request({ method:"eth_accounts" });
+          if(accs && accs.length){ await connectWithProvider(window.ethereum); }
+        }catch(_){}
+      }
+    }, 300);
+  </script>
+</body>
+</html>
