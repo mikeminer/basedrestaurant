@@ -56,4 +56,73 @@ contract BigButton {
     function tipsBalance() external view returns (uint256) {
         return address(this).balance;
     }
+
+    // =========================
+    // ===== ABI UTILITIES =====
+    // =========================
+
+    /// @notice Selector delle funzioni (prime 4 bytes di keccak256 della firma)
+    function selectorPress() external pure returns (bytes4) {
+        return this.press.selector; // equivalente a bytes4(keccak256("press(string)"))
+    }
+
+    function selectorSetCooldown() external pure returns (bytes4) {
+        return this.setCooldown.selector; // "setCooldown(uint256)"
+    }
+
+    function selectorWithdraw() external pure returns (bytes4) {
+        return this.withdraw.selector; // "withdraw(address,uint256)"
+    }
+
+    /// @notice Calldata completo (selector + params) per press(string)
+    function calldataPress(string calldata message_) external pure returns (bytes memory) {
+        return abi.encodeWithSelector(this.press.selector, message_);
+    }
+
+    /// @notice Calldata completo per setCooldown(uint256)
+    function calldataSetCooldown(uint256 seconds_) external pure returns (bytes memory) {
+        return abi.encodeWithSelector(this.setCooldown.selector, seconds_);
+    }
+
+    /// @notice Calldata completo per withdraw(address,uint256)
+    function calldataWithdraw(address to, uint256 amount) external pure returns (bytes memory) {
+        return abi.encodeWithSelector(this.withdraw.selector, to, amount);
+    }
+
+    /// @notice Calcola selector da una firma arbitraria, es. "transfer(address,uint256)"
+    function selectorOf(string calldata signature) external pure returns (bytes4) {
+        return bytes4(keccak256(bytes(signature)));
+    }
+
+    /// @notice Concatena selector (da firma) e parametri già encodati (abi.encode(...))
+    function makeCalldata(string calldata signature, bytes calldata encodedParams) external pure returns (bytes memory) {
+        bytes4 sel = bytes4(keccak256(bytes(signature)));
+        return bytes.concat(sel, encodedParams);
+    }
+
+    /// @notice Decodifica i parametri di press(string) da un calldata (ignora i primi 4 bytes di selector)
+    function decodePressParams(bytes calldata data) external pure returns (string memory message_) {
+        require(data.length >= 4, "Bad calldata");
+        bytes calldata params = data[4:];
+        (message_) = abi.decode(params, (string));
+    }
+
+    /// @notice Decodifica i parametri di setCooldown(uint256) da un calldata
+    function decodeSetCooldownParams(bytes calldata data) external pure returns (uint256 seconds_) {
+        require(data.length >= 4, "Bad calldata");
+        bytes calldata params = data[4:];
+        (seconds_) = abi.decode(params, (uint256));
+    }
+
+    /// @notice Decodifica i parametri di withdraw(address,uint256) da un calldata
+    function decodeWithdrawParams(bytes calldata data) external pure returns (address to, uint256 amount) {
+        require(data.length >= 4, "Bad calldata");
+        bytes calldata params = data[4:];
+        (to, amount) = abi.decode(params, (address, uint256));
+    }
+
+    /// @notice Hash della firma dell'evento Pressed (topic0)
+    function eventPressedTopic0() external pure returns (bytes32) {
+        return keccak256("Pressed(address,uint256,uint256,string,uint256)");
+    }
 }
