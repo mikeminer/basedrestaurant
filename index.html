@@ -484,6 +484,31 @@
     }
   });
 </script>
+<script type="module">
+  import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest?v=20251028';
+
+  // log diagnostico: se non lo vedi in console, l'import non è partito
+  console.log('[Miniapp] SDK loaded:', !!sdk);
+
+  async function callReady() {
+    try {
+      // chiama ready solo quando il layout è stabile
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await sdk.actions.ready({ disableNativeGestures: true });
+      console.log('✅ sdk.actions.ready() OK — splash hidden');
+    } catch (e) {
+      console.warn('⚠️ ready() failed:', e);
+    }
+  }
+
+  // 1) al load
+  window.addEventListener('load', callReady);
+  // 2) fallback dopo 2s (se qualche cosa ha bloccato il primo tentativo)
+  setTimeout(callReady, 2000);
+
+  // esponi un test manuale dalla console, utile nel Debug Tool
+  window.__miniappReady = callReady;
+</script>
 
 </body>
 </html>
