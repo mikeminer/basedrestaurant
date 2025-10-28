@@ -15,7 +15,6 @@
     }
   }
 }'>
-
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Based Pasta Ristorante — dApp</title>
@@ -187,6 +186,8 @@
 
   <!-- Ethers v6 (UMD) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+
+  <!-- App core (rete Base + EIP-6963 + contratto) -->
   <script>
     // ===== CONFIG (Base only) =====
     const NET = {
@@ -197,7 +198,7 @@
       blockExplorer: "https://basescan.org",
       explorerAddr: "https://basescan.org/address/"
     };
-    const CONTRACT_ADDRESS = "0x18b1119706520839E2aa632191331A94A673F00c"; // <- il tuo address
+    const CONTRACT_ADDRESS = "0x18b1119706520839E2aa632191331A94A673F00c";
 
     const ABI = [
       {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
@@ -216,7 +217,7 @@
 
     // ===== STATE & UTIL =====
     let provider, signer, contract, currentAccount, countdownTimer;
-    let pressedListener = null; // keep reference to remove on disconnect
+    let pressedListener = null;
     const $ = id => document.getElementById(id);
     const statusEl = $("status"), feedEl = $("feed"), etaEl = $("eta");
     $("explorerLink").href = NET.explorerAddr + CONTRACT_ADDRESS;
@@ -242,8 +243,7 @@
 
     function startEtaCountdown(sec){
       clearInterval(countdownTimer);
-      function render(s){
-        const m = Math.floor(s/60), r = s%60; etaEl.textContent = `${m}m ${r}s`; }
+      function render(s){ const m = Math.floor(s/60), r = s%60; etaEl.textContent = `${m}m ${r}s`; }
       let s = sec; render(s);
       countdownTimer = setInterval(()=>{ s--; if(s<=0){ clearInterval(countdownTimer); etaEl.textContent = "arrived"; return; } render(s); }, 1000);
     }
@@ -251,34 +251,27 @@
 
     // ===== EIP-6963: multi-wallet discovery & selection =====
     const ALLOWED_WALLETS_RDNS = [
-      'io.metamask',
-      'com.coinbase.wallet',
-      'io.zerion.wallet',
-      'com.okex.wallet',
-      'com.okx.web3.wallet',
-      'me.rainbow',
-      'io.rabby'
+      'io.metamask','com.coinbase.wallet','io.zerion.wallet','com.okex.wallet','com.okx.web3.wallet','me.rainbow','io.rabby'
     ];
-
     const discovered = new Map(); // uuid -> detail { info, provider }
     const walletModal = document.getElementById('walletModal');
     const walletList  = document.getElementById('walletList');
     const closeWalletModalBtn = document.getElementById('closeWalletModal');
 
     function openWalletModal(){
-      if (discovered.size === 0 && window.ethereum) { connectWithProvider(window.ethereum); return; }
+      if (discovered.size === 0 && window.ethereum) { window.__connectSmart(window.ethereum); return; }
       walletList.innerHTML = '';
       const items = Array.from(discovered.values())
         .filter(d => ALLOWED_WALLETS_RDNS.includes(d.info.rdns))
         .sort((a,b) => a.info.name.localeCompare(b.info.name));
 
       if (items.length === 0 && !window.ethereum) { status("Nessun wallet compatibile trovato.", true); return; }
-      if (items.length === 1) { connectWithProvider(items[0].provider); return; }
+      if (items.length === 1) { window.__connectSmart(items[0].provider); return; }
       for (const d of items) {
         const btn = document.createElement('button');
         btn.textContent = `${d.info.name}`;
         btn.style = "text-align:left; padding:12px 14px; border-radius:12px; border:1px solid #184a9d; background:#07275f; color:#eef5ff; font-weight:800;";
-        btn.onclick = () => { closeWalletModal(); connectWithProvider(d.provider); };
+        btn.onclick = () => { closeWalletModal(); window.__connectSmart(d.provider); };
         walletList.appendChild(btn);
       }
       walletModal.style.display = 'flex';
@@ -328,6 +321,7 @@
         document.getElementById("connect").disabled = true;
         document.getElementById("disconnect").style.display = "";
         status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)}`);
+        window.__signer = signer; // <— esponi il signer in modo stabile
         await refreshStats();
         subscribe();
       }catch(err){ status((err && (err.shortMessage || err.message)) || String(err), true); }
@@ -358,6 +352,7 @@
         const connectBtn = document.getElementById("connect");
         connectBtn.textContent = "Connect wallet"; connectBtn.disabled = false;
         document.getElementById("disconnect").style.display = "none";
+        window.__signer = undefined;
         status("Disconnected.");
       }catch(err){ status("Disconnect error: " + ((err && err.message) || String(err)), true); }
     }
@@ -396,15 +391,14 @@
       }catch(err){ const reason = (err && (err.shortMessage || err.message)) || String(err); status("Error: " + reason, true); }
     }
 
-    // ===== Event binding =====
-    document.getElementById("connect").addEventListener("click", () => openWalletModal());
+    // ===== Event binding (core) =====
     document.getElementById("disconnect").addEventListener("click", disconnect);
     document.getElementById("press").addEventListener("click", press);
   </script>
 
-  <!-- Farcaster Miniapp SDK -->
+  <!-- Farcaster Miniapp SDK — unica import + logica ibrida -->
   <script type="module">
-    import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk';
+    import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest';
 
     const envLabel = document.getElementById('envLabel');
     const ctxLine = document.getElementById('ctxLine');
@@ -413,40 +407,65 @@
     const btnShare = document.getElementById('fcShare');
     const btnClose = document.getElementById('fcClose');
 
-    // Safe wrappers (SDK may not exist outside Warpcast)
-    const safeReady = async () => {
-      try { if (sdk?.actions?.ready) await sdk.actions.ready(); } catch(e){ console.warn('sdk.ready fail', e); }
-    };
+    // --- ambiente ---
+    async function isMiniApp() {
+      try { return !!(await sdk.context.get()); } catch { return false; }
+    }
+    window.__isMiniApp = isMiniApp;
 
-    const updateCtx = async () => {
+    async function updateCtx() {
       try {
-        const ctx = sdk?.context ? await sdk.context.get() : null;
+        const ctx = await sdk.context.get().catch(()=>null);
         if (ctx) {
           envLabel.textContent = 'miniapp';
           ctxLine.textContent = `user:${ctx?.user?.fid ?? '-'} • client:${ctx?.client?.platform ?? '-'} • frame:${ctx?.frame?.id ?? '-'}`;
-          document.getElementById('fcShare').classList.remove('ghost');
-          document.getElementById('fcClose').classList.remove('ghost');
+          btnShare.classList.remove('ghost'); btnClose.classList.remove('ghost');
         } else {
           envLabel.textContent = 'browser';
           ctxLine.textContent = 'running in normal web browser';
-          document.getElementById('fcShare').classList.add('ghost');
-          document.getElementById('fcClose').classList.add('ghost');
+          btnShare.classList.add('ghost'); btnClose.classList.add('ghost');
         }
-      } catch (e) {
-        envLabel.textContent = 'browser';
-        ctxLine.textContent = 'sdk context not available';
-      }
+      } catch { envLabel.textContent = 'browser'; ctxLine.textContent = 'sdk context not available'; }
+    }
+
+    async function readyIfMiniApp() {
+      try {
+        if (await isMiniApp()) {
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          await sdk.actions.ready({ disableNativeGestures: true });
+          console.log('✅ miniapp ready');
+        }
+      } catch (e) { console.warn('miniapp ready failed', e); }
+    }
+
+    window.addEventListener('load', async () => { await updateCtx(); await readyIfMiniApp(); });
+
+    // --- provider universale + connect smart ---
+    async function getEthProviderForEnv(preferredBrowserProvider) {
+      if (await isMiniApp()) return await sdk.wallet.getEthereumProvider();
+      return preferredBrowserProvider || window.ethereum || null;
+    }
+    window.__connectSmart = async (preferredBrowserProvider) => {
+      const ethProv = await getEthProviderForEnv(preferredBrowserProvider);
+      if (!ethProv) throw new Error('Nessun provider Ethereum disponibile');
+      await connectWithProvider(ethProv);
+      window.__signer = window.__signer || (typeof signer !== 'undefined' ? signer : undefined);
     };
 
-    window.addEventListener('load', async () => {
-      await updateCtx();
-      await safeReady(); // hide splash on Warpcast
-      console.log('✅ Miniapp ready — splash hidden (if in Warpcast)');
+    // --- wiring del bottone Connect (ibrido) ---
+    document.getElementById("connect").addEventListener("click", async () => {
+      try {
+        if (await isMiniApp()) {
+          await window.__connectSmart(); // 1-click in miniapp
+          return;
+        }
+        // browser: apri modal 6963
+        (window.openWalletModal || (()=>{}))();
+      } catch (e) { (window.status || console.warn) (e?.message || String(e), true); }
     });
 
-    // Example actions (guarded)
+    // --- azioni demo Farcaster ---
     btnOpen.addEventListener('click', async () => {
-      // Tip: In a Miniapp this can trigger wallet or deep-links if supported by host
       try {
         if (sdk?.actions?.openURL) {
           await sdk.actions.openURL('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c');
@@ -458,9 +477,9 @@
 
     btnSign.addEventListener('click', async () => {
       try{
-        if (window.signer) {
+        if (window.__signer) {
           const msg = 'Based Pasta — buon appetito!';
-          const sig = await window.signer.signMessage(msg);
+          const sig = await window.__signer.signMessage(msg);
           alert('Signature obtained!\n' + sig.slice(0,42) + '…');
         } else {
           alert('Connect a wallet first to sign.');
@@ -482,64 +501,6 @@
         else alert('Close action is only available inside Warpcast.');
       }catch(e){ console.warn(e); }
     });
-
-    // Expose signer from ethers part if present
-    Object.defineProperty(window, 'signer', { get(){ return (window).signer || undefined; }, configurable:true });
   </script>
-  <script type="module">
-  import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk';
-
-  window.addEventListener('load', async () => {
-    try {
-      // metti qui eventuale init app, se serve…
-      await sdk.actions.ready();
-      console.log('✅ Miniapp ready — splash hidden');
-    } catch (e) {
-      console.warn('sdk.ready failed', e);
-    }
-  });
-</script>
-<script type="module">
-  import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest?v=20251028';
-
-  // log diagnostico: se non lo vedi in console, l'import non è partito
-  console.log('[Miniapp] SDK loaded:', !!sdk);
-
-  async function callReady() {
-    try {
-      // chiama ready solo quando il layout è stabile
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await sdk.actions.ready({ disableNativeGestures: true });
-      console.log('✅ sdk.actions.ready() OK — splash hidden');
-    } catch (e) {
-      console.warn('⚠️ ready() failed:', e);
-    }
-  }
-
-  // 1) al load
-  window.addEventListener('load', callReady);
-  // 2) fallback dopo 2s (se qualche cosa ha bloccato il primo tentativo)
-  setTimeout(callReady, 2000);
-
-  // esponi un test manuale dalla console, utile nel Debug Tool
-  window.__miniappReady = callReady;
-</script>
-<script type="module">
-  import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest?v=1';
-
-  async function callReady() {
-    try {
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await sdk.actions.ready({ disableNativeGestures: true });
-      console.log('✅ Miniapp ready');
-    } catch (e) {
-      console.warn('ready() failed', e);
-    }
-  }
-
-  window.addEventListener('load', callReady);
-  setTimeout(callReady, 2000); // fallback
-</script>
-
 </body>
 </html>
