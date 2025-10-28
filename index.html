@@ -51,8 +51,10 @@
     .brand{ font-weight:900; letter-spacing:.3px; font-size:20px; }
     .link{ color:var(--muted); text-decoration:none; font-size:13px; }
     .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-    .stat{ background:rgba(1,28,84,.45); border:1px solid var(--panelBorder); border-radius:14px; padding:12px;
-      text-align:center; backdrop-filter: blur(6px); }
+    .stat{
+      background:rgba(1,28,84,.45); border:1px solid var(--panelBorder); border-radius:14px; padding:12px;
+      text-align:center; backdrop-filter: blur(6px);
+    }
     .stat .label{ font-size:12px; color:var(--muted); }
     .stat .value{ font-size:22px; font-weight:800; letter-spacing:.4px; }
     .cta{ display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:end; margin:18px 0 10px; }
@@ -71,7 +73,10 @@
     }
     button:hover{ transform: translateY(-1px); filter:saturate(1.1); }
     button:active{ transform: translateY(1px) scale(.99); }
-    .bigbutton{ width:100%; margin:12px 0 8px; padding:24px 28px; font-size:22px; animation:pulse 1.9s infinite; }
+    .bigbutton{
+      width:100%; margin:12px 0 8px; padding:24px 28px; font-size:22px;
+      animation:pulse 1.9s infinite;
+    }
     @keyframes pulse{
       0%{ box-shadow:0 0 0 0 rgba(113,168,255,.45); }
       70%{ box-shadow:0 0 0 18px rgba(113,168,255,0); }
@@ -80,12 +85,16 @@
     .muted{ color:var(--muted); font-size:12px; }
     .ok{ color:var(--success); }
     .err{ color:var(--error); }
-    .feed{ margin-top:16px; max-height:330px; overflow:auto; padding:10px;
-      background:rgba(3,25,73,.55); border:1px solid var(--panelBorder); border-radius:14px; backdrop-filter: blur(6px); }
+    .feed{
+      margin-top:16px; max-height:330px; overflow:auto; padding:10px;
+      background:rgba(3,25,73,.55); border:1px solid var(--panelBorder); border-radius:14px; backdrop-filter: blur(6px);
+    }
     .item{ padding:10px 8px; border-bottom:1px dashed rgba(122,165,255,.35); font-size:14px; display:flex; justify-content:space-between; gap:12px; }
     .item:last-child{ border-bottom:none; }
-    .netbadge{ font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--panelBorder);
-      background:rgba(7,39,95,.6); color:#a9c4ff; }
+    .netbadge{
+      font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--panelBorder);
+      background:rgba(7,39,95,.6); color:#a9c4ff;
+    }
     .note{ font-size:12px; color:#dfe9ff; margin-top:4px; }
     .eta{ font-weight:700; letter-spacing:.3px; }
     .ghost{ opacity:.5; filter:saturate(.75); }
@@ -96,11 +105,12 @@
 </head>
 <body>
 
-  <!-- Farcaster Miniapp: ready() ASAP + retry -->
+  <!-- Farcaster Miniapp: ready() ASAP + retries (singleton) -->
   <script type="module">
     import { sdk as _sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest';
     if (!window.__fcsdk) window.__fcsdk = _sdk;
     const sdk = window.__fcsdk;
+
     if (!window.__mini_ready_called) window.__mini_ready_called = false;
 
     async function tryReady(tag){
@@ -111,7 +121,7 @@
         console.log('✅ ready()', tag);
         return true;
       } catch (e) {
-        console.warn('⚠️ ready() failed —', tag, e?.message||e);
+        console.warn('⚠️ ready() failed —', tag, e?.message || e);
         try { await sdk.actions.hideSplashScreen?.(); } catch(_) {}
         return false;
       }
@@ -210,6 +220,7 @@
 
   <!-- App core (rete Base + EIP-6963 + contratto) -->
   <script>
+    // ===== CONFIG =====
     const NET = {
       chainIdHex: "0x2105", // 8453
       name: "Base",
@@ -234,8 +245,8 @@
       {"inputs":[],"name":"totalPresses","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
     ];
 
-    let provider, signer, contract, currentAccount, countdownTimer;
-    let pressedListener = null;
+    // ===== STATE & UTIL =====
+    let provider, signer, contract, currentAccount, countdownTimer, pressedListener = null;
     const $ = id => document.getElementById(id);
     const statusEl = $("status"), feedEl = $("feed"), etaEl = $("eta");
     $("explorerLink").href = NET.explorerAddr + CONTRACT_ADDRESS;
@@ -265,7 +276,7 @@
     }
     function stopEtaCountdown(){ clearInterval(countdownTimer); const eta = document.getElementById('eta'); if (eta) eta.textContent = '—'; }
 
-    // EIP-6963 (browser)
+    // ===== EIP-6963 (browser) =====
     const ALLOWED_WALLETS_RDNS = ['io.metamask','com.coinbase.wallet','io.zerion.wallet','com.okex.wallet','com.okx.web3.wallet','me.rainbow','io.rabby'];
     const discovered = new Map();
     const walletModal = document.getElementById('walletModal');
@@ -301,7 +312,6 @@
       try{
         await providerEth.request({ method:"wallet_switchEthereumChain", params:[{ chainId: NET.chainIdHex }] });
       }catch(e){
-        // host che non supporta switch/add chain: non blocchiamo la connessione
         if (e && e.code === 4902) {
           try{
             await providerEth.request({
@@ -325,15 +335,18 @@
       try{
         await ensureBaseSelectedOn(providerEth);
         provider = new ethers.BrowserProvider(providerEth);
-        // su mini-app alcuni host rifiutano eth_requestAccounts: proviamo comunque
         try { await provider.send("eth_requestAccounts", []); } catch (e) { console.warn('eth_requestAccounts fallback:', e?.message||e); }
         const net = await provider.getNetwork().catch(()=>({chainId:0n}));
         signer = await provider.getSigner();
         currentAccount = await signer.getAddress();
         contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-        document.getElementById("connect").textContent = "Connected";
-        document.getElementById("connect").disabled = true;
+
+        const connectBtn = document.getElementById("connect");
+        connectBtn.textContent = "Connected";
+        connectBtn.disabled = true;
+        connectBtn.style.display = "none";       // nascondi se connesso
         document.getElementById("disconnect").style.display = "";
+
         status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)}${net?.chainId?` (chain ${net.chainId})`:''}`);
         window.__signer = signer;
         await refreshStats();
@@ -358,7 +371,7 @@
         stopEtaCountdown();
         provider = signer = contract = currentAccount = undefined; pressedListener = null;
         const connectBtn = document.getElementById("connect");
-        connectBtn.textContent = "Connect wallet"; connectBtn.disabled = false;
+        connectBtn.textContent = "Connect wallet"; connectBtn.disabled = false; connectBtn.style.display = "";
         document.getElementById("disconnect").style.display = "none";
         window.__signer = undefined;
         status("Disconnected.");
@@ -403,7 +416,7 @@
     document.getElementById("press").addEventListener("click", press);
   </script>
 
-  <!-- Farcaster Miniapp SDK — connessione 1-click in mini-app -->
+  <!-- Farcaster Miniapp SDK — auto-connect in mini-app + 1-click; browser = modal 6963 -->
   <script type="module">
     let sdk = window.__fcsdk;
     if (!sdk) { const mod = await import('https://esm.sh/@farcaster/miniapp-sdk@latest'); sdk = mod.sdk; window.__fcsdk = sdk; }
@@ -435,39 +448,49 @@
         ctxLine.textContent = 'sdk context not available';
       }
     }
-    window.addEventListener('load', updateCtx);
 
-    async function getEthProviderForEnv(preferredBrowserProvider){
-      if (await isMiniApp()) {
-        // **Correzione chiave**: chiedi prima i permessi in mini-app
+    // === AUTO-CONNECT in mini-app ===
+    let __autoConnectDone = false;
+    async function autoConnectMiniApp(){
+      if (__autoConnectDone) return;
+      if (!(await isMiniApp())) return;
+      try {
+        // 1) chiedi permesso indirizzi (alcuni host lo richiedono esplicitamente)
         try { await sdk.wallet.requestAddresses(); } catch(e){ console.warn('requestAddresses:', e?.message||e); }
-        try {
-          const addrs = await sdk.wallet.getAddresses().catch(()=>[]);
-          if (addrs && addrs.length) console.log('wallet addresses:', addrs);
-        } catch {}
-        return await sdk.wallet.getEthereumProvider();
+        // 2) prendi provider EIP-1193 della mini-app
+        const ethProv = await sdk.wallet.getEthereumProvider();
+        if (!ethProv) throw new Error('Miniapp provider non disponibile');
+        // 3) connetti via ethers (switch chain best-effort)
+        await connectWithProvider(ethProv);
+        __autoConnectDone = true;
+      } catch (e) {
+        console.warn('Auto-connect miniapp failed:', e?.message||e);
       }
-      return preferredBrowserProvider || window.ethereum || null;
     }
 
-    window.__connectSmart = async (preferredBrowserProvider) => {
-      const ethProv = await getEthProviderForEnv(preferredBrowserProvider);
-      if (!ethProv) throw new Error('Nessun provider Ethereum disponibile');
-      await connectWithProvider(ethProv);
-      window.__signer = window.__signer || (typeof signer !== 'undefined' ? signer : undefined);
-    };
+    window.addEventListener('load', async () => {
+      await updateCtx();
+      autoConnectMiniApp();              // parte subito
+      setTimeout(autoConnectMiniApp, 500);  // piccolo retry
+    });
 
+    // === Connect button: mini-app 1-click, browser modal ===
     document.getElementById("connect").addEventListener("click", async () => {
       try {
-        if (await isMiniApp()) { await window.__connectSmart(); return; }
+        if (await isMiniApp()) { await autoConnectMiniApp(); return; }
         (window.openWalletModal || (()=>{}))();
       } catch (e) { (window.status || console.warn)(e?.message || String(e), true); }
     });
 
+    // === Azioni Farcaster di esempio ===
     btnOpen.addEventListener('click', async () => {
-      try { if (sdk?.actions?.openURL) await sdk.actions.openURL('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c');
-            else window.open('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c','_blank'); }
-      catch(e){ console.warn(e); }
+      try {
+        if (sdk?.actions?.openURL) {
+          await sdk.actions.openURL('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c');
+        } else {
+          window.open('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c','_blank');
+        }
+      } catch(e){ console.warn(e); }
     });
 
     btnSign.addEventListener('click', async () => {
