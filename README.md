@@ -1,5 +1,5 @@
 # 🍝 Based Pasta Ristorante — dApp link :https://mikeminer.github.io/basedrestaurant/
-featured on https://devfolio.co/projects/based-restaurant-e84d
+featured on https://devfolio.co/projects/based-restaurant-e84d and Farcaster Integration
 
 Welcome to **Based Pasta Ristorante**, a playful Web3 restaurant experience built as a decentralized application (dApp) on the **Base network**. 
 
