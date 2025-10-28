@@ -104,6 +104,37 @@
   </style>
 </head>
 <body>
+
+  <!-- Farcaster Miniapp: call ready() ASAP (singleton SDK via window.__fcsdk) -->
+  <script type="module">
+    import { sdk as _sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest';
+    // Esporta l’istanza una sola volta
+    if (!window.__fcsdk) window.__fcsdk = _sdk;
+
+    if (!window.__mini_ready_called) window.__mini_ready_called = false;
+
+    async function isMiniApp() {
+      try { return !!(await window.__fcsdk.context.get()); } catch { return false; }
+    }
+    async function callReady(reason='asap') {
+      if (window.__mini_ready_called) return;
+      try {
+        if (!(await isMiniApp())) return;
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await window.__fcsdk.actions.ready({ disableNativeGestures: true });
+        window.__mini_ready_called = true;
+        console.log('✅ sdk.actions.ready()', reason);
+      } catch (e) { console.warn('⚠️ ready() failed —', reason, e); }
+    }
+    callReady('after-body');
+    setTimeout(() => callReady('fallback-800ms'), 800);
+    setTimeout(() => callReady('fallback-2000ms'), 2000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') callReady('visibilitychange');
+    });
+    window.__miniappReady = () => callReady('manual');
+  </script>
+
   <div class="card">
     <div class="ribbon">Tip your waiter on Base</div>
 
@@ -122,7 +153,7 @@
       <div class="stat"><div class="label">Total orders</div><div class="value" id="totalPresses">—</div></div>
       <div class="stat"><div class="label">Your orders</div><div class="value" id="yourPresses">—</div></div>
       <div class="stat"><div class="label">Contract cooldown</div><div class="value" id="cooldown">—</div></div>
-      <div class="stat"><div class="label">ETA</div><div class="value eta" id="eta">—</div></div>
+      <div class="stat"><div class="label">ETA</div><div class="value class eta" id="eta">—</div></div>
     </div>
 
     <div class="cta">
@@ -277,7 +308,10 @@
       walletModal.style.display = 'flex';
     }
     function closeWalletModal(){ walletModal.style.display = 'none'; }
-    closeWalletModalBtn.onclick = closeWalletModal;
+    // Espone global per modulo SDK
+    window.openWalletModal = openWalletModal;
+    const _closeBtn = document.getElementById('closeWalletModal');
+    _closeBtn && (_closeBtn.onclick = closeWalletModal);
 
     window.addEventListener('eip6963:announceProvider', (event) => {
       const detail = event.detail;
@@ -321,7 +355,7 @@
         document.getElementById("connect").disabled = true;
         document.getElementById("disconnect").style.display = "";
         status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)}`);
-        window.__signer = signer; // <— esponi il signer in modo stabile
+        window.__signer = signer; // esponi il signer
         await refreshStats();
         subscribe();
       }catch(err){ status((err && (err.shortMessage || err.message)) || String(err), true); }
@@ -396,9 +430,14 @@
     document.getElementById("press").addEventListener("click", press);
   </script>
 
-  <!-- Farcaster Miniapp SDK — unica import + logica ibrida -->
+  <!-- Farcaster Miniapp SDK — unica logica ibrida (riusa window.__fcsdk) -->
   <script type="module">
-    import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest';
+    // Riusa la singleton; se assente (edge case), importala ora
+    let sdk = window.__fcsdk;
+    if (!sdk) {
+      const mod = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
+      sdk = mod.sdk; window.__fcsdk = sdk;
+    }
 
     const envLabel = document.getElementById('envLabel');
     const ctxLine = document.getElementById('ctxLine');
@@ -408,9 +447,7 @@
     const btnClose = document.getElementById('fcClose');
 
     // --- ambiente ---
-    async function isMiniApp() {
-      try { return !!(await sdk.context.get()); } catch { return false; }
-    }
+    async function isMiniApp() { try { return !!(await sdk.context.get()); } catch { return false; } }
     window.__isMiniApp = isMiniApp;
 
     async function updateCtx() {
@@ -430,10 +467,12 @@
 
     async function readyIfMiniApp() {
       try {
+        if (window.__mini_ready_called) return;                 // evita doppio ready
         if (await isMiniApp()) {
           await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
           await sdk.actions.ready({ disableNativeGestures: true });
-          console.log('✅ miniapp ready');
+          window.__mini_ready_called = true;
+          console.log('✅ miniapp ready (late)');
         }
       } catch (e) { console.warn('miniapp ready failed', e); }
     }
@@ -455,13 +494,9 @@
     // --- wiring del bottone Connect (ibrido) ---
     document.getElementById("connect").addEventListener("click", async () => {
       try {
-        if (await isMiniApp()) {
-          await window.__connectSmart(); // 1-click in miniapp
-          return;
-        }
-        // browser: apri modal 6963
-        (window.openWalletModal || (()=>{}))();
-      } catch (e) { (window.status || console.warn) (e?.message || String(e), true); }
+        if (await isMiniApp()) { await window.__connectSmart(); return; }
+        (window.openWalletModal || (()=>{}))(); // browser: apri modal
+      } catch (e) { (window.status || console.warn)(e?.message || String(e), true); }
     });
 
     // --- azioni demo Farcaster ---
