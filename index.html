@@ -524,6 +524,22 @@
   // esponi un test manuale dalla console, utile nel Debug Tool
   window.__miniappReady = callReady;
 </script>
+<script type="module">
+  import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest?v=1';
+
+  async function callReady() {
+    try {
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await sdk.actions.ready({ disableNativeGestures: true });
+      console.log('✅ Miniapp ready');
+    } catch (e) {
+      console.warn('ready() failed', e);
+    }
+  }
+
+  window.addEventListener('load', callReady);
+  setTimeout(callReady, 2000); // fallback
+</script>
 
 </body>
 </html>
