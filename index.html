@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
   <meta name="fc:miniapp" content='{
-  "version":"1",
-  "imageUrl":"https://mikeminer.github.io/basedrestaurant/og-1200x630.png",
-  "button":{
-    "title":"Launch App",
-    "action":{
-      "type":"launch_miniapp",
-      "url":"https://mikeminer.github.io/basedrestaurant/",
-      "name":"Based Pasta Ristorante",
-      "splashImageUrl":"https://mikeminer.github.io/basedrestaurant/splash-200.png",
-      "splashBackgroundColor":"#041633"
+    "version":"1",
+    "imageUrl":"https://mikeminer.github.io/basedrestaurant/og-1200x630.png",
+    "button":{
+      "title":"Launch App",
+      "action":{
+        "type":"launch_miniapp",
+        "url":"https://mikeminer.github.io/basedrestaurant/",
+        "name":"Based Pasta Ristorante",
+        "splashImageUrl":"https://mikeminer.github.io/basedrestaurant/splash-200.png",
+        "splashBackgroundColor":"#041633"
+      }
     }
-  }
-}'>
+  }'>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Based Pasta Ristorante — dApp</title>
@@ -51,10 +51,8 @@
     .brand{ font-weight:900; letter-spacing:.3px; font-size:20px; }
     .link{ color:var(--muted); text-decoration:none; font-size:13px; }
     .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-    .stat{
-      background:rgba(1,28,84,.45); border:1px solid var(--panelBorder); border-radius:14px; padding:12px;
-      text-align:center; backdrop-filter: blur(6px);
-    }
+    .stat{ background:rgba(1,28,84,.45); border:1px solid var(--panelBorder); border-radius:14px; padding:12px;
+      text-align:center; backdrop-filter: blur(6px); }
     .stat .label{ font-size:12px; color:var(--muted); }
     .stat .value{ font-size:22px; font-weight:800; letter-spacing:.4px; }
     .cta{ display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:end; margin:18px 0 10px; }
@@ -73,10 +71,7 @@
     }
     button:hover{ transform: translateY(-1px); filter:saturate(1.1); }
     button:active{ transform: translateY(1px) scale(.99); }
-    .bigbutton{
-      width:100%; margin:12px 0 8px; padding:24px 28px; font-size:22px;
-      animation:pulse 1.9s infinite;
-    }
+    .bigbutton{ width:100%; margin:12px 0 8px; padding:24px 28px; font-size:22px; animation:pulse 1.9s infinite; }
     @keyframes pulse{
       0%{ box-shadow:0 0 0 0 rgba(113,168,255,.45); }
       70%{ box-shadow:0 0 0 18px rgba(113,168,255,0); }
@@ -85,16 +80,12 @@
     .muted{ color:var(--muted); font-size:12px; }
     .ok{ color:var(--success); }
     .err{ color:var(--error); }
-    .feed{
-      margin-top:16px; max-height:330px; overflow:auto; padding:10px;
-      background:rgba(3,25,73,.55); border:1px solid var(--panelBorder); border-radius:14px; backdrop-filter: blur(6px);
-    }
+    .feed{ margin-top:16px; max-height:330px; overflow:auto; padding:10px;
+      background:rgba(3,25,73,.55); border:1px solid var(--panelBorder); border-radius:14px; backdrop-filter: blur(6px); }
     .item{ padding:10px 8px; border-bottom:1px dashed rgba(122,165,255,.35); font-size:14px; display:flex; justify-content:space-between; gap:12px; }
     .item:last-child{ border-bottom:none; }
-    .netbadge{
-      font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--panelBorder);
-      background:rgba(7,39,95,.6); color:#a9c4ff;
-    }
+    .netbadge{ font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--panelBorder);
+      background:rgba(7,39,95,.6); color:#a9c4ff; }
     .note{ font-size:12px; color:#dfe9ff; margin-top:4px; }
     .eta{ font-weight:700; letter-spacing:.3px; }
     .ghost{ opacity:.5; filter:saturate(.75); }
@@ -105,23 +96,22 @@
 </head>
 <body>
 
-  <!-- Farcaster Miniapp: ready() ASAP + retries (singleton SDK) -->
+  <!-- Farcaster Miniapp: ready() ASAP + retry -->
   <script type="module">
     import { sdk as _sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest';
     if (!window.__fcsdk) window.__fcsdk = _sdk;
     const sdk = window.__fcsdk;
-
     if (!window.__mini_ready_called) window.__mini_ready_called = false;
 
     async function tryReady(tag){
       if (window.__mini_ready_called) return true;
       try {
-        await sdk.actions.ready(); // nessun gating per massima compatibilità
+        await sdk.actions.ready();
         window.__mini_ready_called = true;
         console.log('✅ ready()', tag);
         return true;
       } catch (e) {
-        console.warn('⚠️ ready() failed —', tag, e?.message || e);
+        console.warn('⚠️ ready() failed —', tag, e?.message||e);
         try { await sdk.actions.hideSplashScreen?.(); } catch(_) {}
         return false;
       }
@@ -220,7 +210,6 @@
 
   <!-- App core (rete Base + EIP-6963 + contratto) -->
   <script>
-    // ===== CONFIG (Base only) =====
     const NET = {
       chainIdHex: "0x2105", // 8453
       name: "Base",
@@ -230,7 +219,6 @@
       explorerAddr: "https://basescan.org/address/"
     };
     const CONTRACT_ADDRESS = "0x18b1119706520839E2aa632191331A94A673F00c";
-
     const ABI = [
       {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
       {"anonymous":false,"inputs":[
@@ -246,7 +234,6 @@
       {"inputs":[],"name":"totalPresses","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
     ];
 
-    // ===== STATE & UTIL =====
     let provider, signer, contract, currentAccount, countdownTimer;
     let pressedListener = null;
     const $ = id => document.getElementById(id);
@@ -263,7 +250,6 @@
       feedEl.prepend(el);
       while(feedEl.children.length>100) feedEl.removeChild(feedEl.lastChild);
     }
-
     function computeEtaSeconds(tipEth){
       const t = Number(tipEth || 0);
       if(t >= 0.02) return 5*60;
@@ -271,7 +257,6 @@
       if(t > 0) return 18*60;
       return 20*60;
     }
-
     function startEtaCountdown(sec){
       clearInterval(countdownTimer);
       function render(s){ const m = Math.floor(s/60), r = s%60; etaEl.textContent = `${m}m ${r}s`; }
@@ -280,11 +265,9 @@
     }
     function stopEtaCountdown(){ clearInterval(countdownTimer); const eta = document.getElementById('eta'); if (eta) eta.textContent = '—'; }
 
-    // ===== EIP-6963: multi-wallet discovery & selection =====
-    const ALLOWED_WALLETS_RDNS = [
-      'io.metamask','com.coinbase.wallet','io.zerion.wallet','com.okex.wallet','com.okx.web3.wallet','me.rainbow','io.rabby'
-    ];
-    const discovered = new Map(); // uuid -> detail { info, provider }
+    // EIP-6963 (browser)
+    const ALLOWED_WALLETS_RDNS = ['io.metamask','com.coinbase.wallet','io.zerion.wallet','com.okex.wallet','com.okx.web3.wallet','me.rainbow','io.rabby'];
+    const discovered = new Map();
     const walletModal = document.getElementById('walletModal');
     const walletList  = document.getElementById('walletList');
     const closeWalletModalBtn = document.getElementById('closeWalletModal');
@@ -292,10 +275,7 @@
     function openWalletModal(){
       if (discovered.size === 0 && window.ethereum) { window.__connectSmart(window.ethereum); return; }
       walletList.innerHTML = '';
-      const items = Array.from(discovered.values())
-        .filter(d => ALLOWED_WALLETS_RDNS.includes(d.info.rdns))
-        .sort((a,b) => a.info.name.localeCompare(b.info.name));
-
+      const items = Array.from(discovered.values()).filter(d => ALLOWED_WALLETS_RDNS.includes(d.info.rdns)).sort((a,b)=>a.info.name.localeCompare(b.info.name));
       if (items.length === 0 && !window.ethereum) { status("Nessun wallet compatibile trovato.", true); return; }
       if (items.length === 1) { window.__connectSmart(items[0].provider); return; }
       for (const d of items) {
@@ -310,7 +290,6 @@
     function closeWalletModal(){ walletModal.style.display = 'none'; }
     window.openWalletModal = openWalletModal;
     closeWalletModalBtn && (closeWalletModalBtn.onclick = closeWalletModal);
-
     window.addEventListener('eip6963:announceProvider', (event) => {
       const detail = event.detail;
       if (!detail || !detail.info || !detail.provider) return;
@@ -318,24 +297,27 @@
     });
     try { window.dispatchEvent(new Event('eip6963:requestProvider')); } catch(_) {}
 
-    // ===== Base-only connect (switch/aggiunta forzata) =====
     async function ensureBaseSelectedOn(providerEth){
-      const target = NET;
       try{
-        await providerEth.request({ method:"wallet_switchEthereumChain", params:[{ chainId: target.chainIdHex }] });
+        await providerEth.request({ method:"wallet_switchEthereumChain", params:[{ chainId: NET.chainIdHex }] });
       }catch(e){
-        if(e && e.code === 4902){
-          await providerEth.request({
-            method:"wallet_addEthereumChain",
-            params:[{
-              chainId: target.chainIdHex,
-              chainName: target.name,
-              nativeCurrency: target.currency,
-              rpcUrls: target.rpcUrls,
-              blockExplorerUrls: [target.blockExplorer]
-            }]
-          });
-        }else{ throw e; }
+        // host che non supporta switch/add chain: non blocchiamo la connessione
+        if (e && e.code === 4902) {
+          try{
+            await providerEth.request({
+              method:"wallet_addEthereumChain",
+              params:[{
+                chainId: NET.chainIdHex,
+                chainName: NET.name,
+                nativeCurrency: NET.currency,
+                rpcUrls: NET.rpcUrls,
+                blockExplorerUrls: [NET.blockExplorer]
+              }]
+            });
+          }catch(e2){ console.warn('addChain non supportato/negato:', e2?.message||e2); }
+        } else {
+          console.warn('switchChain non supportato/negato:', e?.message||e);
+        }
       }
     }
 
@@ -343,17 +325,17 @@
       try{
         await ensureBaseSelectedOn(providerEth);
         provider = new ethers.BrowserProvider(providerEth);
-        await provider.send("eth_requestAccounts", []);
-        const net = await provider.getNetwork();
-        if (net.chainId !== 8453n) { throw new Error("Connection blocked: not on Base network."); }
+        // su mini-app alcuni host rifiutano eth_requestAccounts: proviamo comunque
+        try { await provider.send("eth_requestAccounts", []); } catch (e) { console.warn('eth_requestAccounts fallback:', e?.message||e); }
+        const net = await provider.getNetwork().catch(()=>({chainId:0n}));
         signer = await provider.getSigner();
         currentAccount = await signer.getAddress();
         contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
         document.getElementById("connect").textContent = "Connected";
         document.getElementById("connect").disabled = true;
         document.getElementById("disconnect").style.display = "";
-        status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)}`);
-        window.__signer = signer; // expose signer for other buttons
+        status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)}${net?.chainId?` (chain ${net.chainId})`:''}`);
+        window.__signer = signer;
         await refreshStats();
         subscribe();
       }catch(err){ status((err && (err.shortMessage || err.message)) || String(err), true); }
@@ -361,13 +343,7 @@
 
     function subscribe(){
       pressedListener = (user, totalPresses, userPresses, message, tip) => {
-        addFeedItem({
-          user,
-          total: totalPresses.toString(),
-          userPresses: userPresses.toString(),
-          message,
-          tip: tip ? ethers.formatEther(tip) + " ETH" : "0"
-        });
+        addFeedItem({ user, total: totalPresses.toString(), userPresses: userPresses.toString(), message, tip: tip ? ethers.formatEther(tip) + " ETH" : "0" });
         document.getElementById("totalPresses").textContent = totalPresses.toString();
         if(currentAccount && user.toLowerCase() === currentAccount.toLowerCase()){
           document.getElementById("yourPresses").textContent = userPresses.toString();
@@ -423,14 +399,12 @@
       }catch(err){ const reason = (err && (err.shortMessage || err.message)) || String(err); status("Error: " + reason, true); }
     }
 
-    // ===== Event binding (core) =====
     document.getElementById("disconnect").addEventListener("click", disconnect);
     document.getElementById("press").addEventListener("click", press);
   </script>
 
-  <!-- Farcaster Miniapp SDK — logica ibrida (riusa singleton) -->
+  <!-- Farcaster Miniapp SDK — connessione 1-click in mini-app -->
   <script type="module">
-    // riusa singleton SDK; importa solo se mancante (edge)
     let sdk = window.__fcsdk;
     if (!sdk) { const mod = await import('https://esm.sh/@farcaster/miniapp-sdk@latest'); sdk = mod.sdk; window.__fcsdk = sdk; }
 
@@ -450,13 +424,11 @@
         if (ctx) {
           envLabel.textContent = 'miniapp';
           ctxLine.textContent = `user:${ctx?.user?.fid ?? '-'} • client:${ctx?.client?.platform ?? '-'} • frame:${ctx?.frame?.id ?? '-'}`;
-          btnShare.classList.remove('ghost');
-          btnClose.classList.remove('ghost');
+          btnShare.classList.remove('ghost'); btnClose.classList.remove('ghost');
         } else {
           envLabel.textContent = 'browser';
           ctxLine.textContent = 'running in normal web browser';
-          btnShare.classList.add('ghost');
-          btnClose.classList.add('ghost');
+          btnShare.classList.add('ghost'); btnClose.classList.add('ghost');
         }
       } catch {
         envLabel.textContent = 'browser';
@@ -465,11 +437,19 @@
     }
     window.addEventListener('load', updateCtx);
 
-    // provider universale + connect smart
     async function getEthProviderForEnv(preferredBrowserProvider){
-      if (await isMiniApp()) return await sdk.wallet.getEthereumProvider();
+      if (await isMiniApp()) {
+        // **Correzione chiave**: chiedi prima i permessi in mini-app
+        try { await sdk.wallet.requestAddresses(); } catch(e){ console.warn('requestAddresses:', e?.message||e); }
+        try {
+          const addrs = await sdk.wallet.getAddresses().catch(()=>[]);
+          if (addrs && addrs.length) console.log('wallet addresses:', addrs);
+        } catch {}
+        return await sdk.wallet.getEthereumProvider();
+      }
       return preferredBrowserProvider || window.ethereum || null;
     }
+
     window.__connectSmart = async (preferredBrowserProvider) => {
       const ethProv = await getEthProviderForEnv(preferredBrowserProvider);
       if (!ethProv) throw new Error('Nessun provider Ethereum disponibile');
@@ -477,7 +457,6 @@
       window.__signer = window.__signer || (typeof signer !== 'undefined' ? signer : undefined);
     };
 
-    // connect button: mini-app 1-click, browser modal
     document.getElementById("connect").addEventListener("click", async () => {
       try {
         if (await isMiniApp()) { await window.__connectSmart(); return; }
@@ -485,15 +464,10 @@
       } catch (e) { (window.status || console.warn)(e?.message || String(e), true); }
     });
 
-    // Farcaster actions
     btnOpen.addEventListener('click', async () => {
-      try {
-        if (sdk?.actions?.openURL) {
-          await sdk.actions.openURL('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c');
-        } else {
-          window.open('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c', '_blank');
-        }
-      } catch(e){ console.warn(e); }
+      try { if (sdk?.actions?.openURL) await sdk.actions.openURL('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c');
+            else window.open('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c','_blank'); }
+      catch(e){ console.warn(e); }
     });
 
     btnSign.addEventListener('click', async () => {
@@ -509,18 +483,13 @@
     });
 
     btnShare.addEventListener('click', async () => {
-      try{
-        const text = '🍝 I just ordered free pasta on Base! #BasedPasta';
-        await navigator.clipboard.writeText(text);
-        alert('Copied share text to clipboard!');
-      }catch(e){ alert('Copy failed.'); }
+      try{ await navigator.clipboard.writeText('🍝 I just ordered free pasta on Base! #BasedPasta'); alert('Copied share text to clipboard!'); }
+      catch(e){ alert('Copy failed.'); }
     });
 
     btnClose.addEventListener('click', async () => {
-      try{
-        if (sdk?.actions?.close) await sdk.actions.close();
-        else alert('Close action is only available inside Warpcast.');
-      }catch(e){ console.warn(e); }
+      try{ if (sdk?.actions?.close) await sdk.actions.close(); else alert('Close action is only available inside Warpcast.'); }
+      catch(e){ console.warn(e); }
     });
   </script>
 </body>
