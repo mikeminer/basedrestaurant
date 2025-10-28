@@ -105,34 +105,34 @@
 </head>
 <body>
 
-  <!-- Farcaster Miniapp: call ready() ASAP (singleton SDK via window.__fcsdk) -->
+  <!-- Farcaster Miniapp: ready() ASAP + retries (singleton SDK) -->
   <script type="module">
     import { sdk as _sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest';
-    // Esporta l’istanza una sola volta
     if (!window.__fcsdk) window.__fcsdk = _sdk;
+    const sdk = window.__fcsdk;
 
     if (!window.__mini_ready_called) window.__mini_ready_called = false;
 
-    async function isMiniApp() {
-      try { return !!(await window.__fcsdk.context.get()); } catch { return false; }
-    }
-    async function callReady(reason='asap') {
-      if (window.__mini_ready_called) return;
+    async function tryReady(tag){
+      if (window.__mini_ready_called) return true;
       try {
-        if (!(await isMiniApp())) return;
-        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-        await window.__fcsdk.actions.ready({ disableNativeGestures: true });
+        await sdk.actions.ready(); // nessun gating per massima compatibilità
         window.__mini_ready_called = true;
-        console.log('✅ sdk.actions.ready()', reason);
-      } catch (e) { console.warn('⚠️ ready() failed —', reason, e); }
+        console.log('✅ ready()', tag);
+        return true;
+      } catch (e) {
+        console.warn('⚠️ ready() failed —', tag, e?.message || e);
+        try { await sdk.actions.hideSplashScreen?.(); } catch(_) {}
+        return false;
+      }
     }
-    callReady('after-body');
-    setTimeout(() => callReady('fallback-800ms'), 800);
-    setTimeout(() => callReady('fallback-2000ms'), 2000);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') callReady('visibilitychange');
-    });
-    window.__miniappReady = () => callReady('manual');
+    tryReady('immediate');
+    setTimeout(()=>tryReady('retry-150ms'),150);
+    setTimeout(()=>tryReady('retry-500ms'),500);
+    setTimeout(()=>tryReady('retry-1000ms'),1000);
+    setTimeout(()=>tryReady('retry-2000ms'),2000);
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') tryReady('visibilitychange'); });
+    window.__miniappReady = ()=>tryReady('manual');
   </script>
 
   <div class="card">
@@ -153,7 +153,7 @@
       <div class="stat"><div class="label">Total orders</div><div class="value" id="totalPresses">—</div></div>
       <div class="stat"><div class="label">Your orders</div><div class="value" id="yourPresses">—</div></div>
       <div class="stat"><div class="label">Contract cooldown</div><div class="value" id="cooldown">—</div></div>
-      <div class="stat"><div class="label">ETA</div><div class="value class eta" id="eta">—</div></div>
+      <div class="stat"><div class="label">ETA</div><div class="value eta" id="eta">—</div></div>
     </div>
 
     <div class="cta">
@@ -308,10 +308,8 @@
       walletModal.style.display = 'flex';
     }
     function closeWalletModal(){ walletModal.style.display = 'none'; }
-    // Espone global per modulo SDK
     window.openWalletModal = openWalletModal;
-    const _closeBtn = document.getElementById('closeWalletModal');
-    _closeBtn && (_closeBtn.onclick = closeWalletModal);
+    closeWalletModalBtn && (closeWalletModalBtn.onclick = closeWalletModal);
 
     window.addEventListener('eip6963:announceProvider', (event) => {
       const detail = event.detail;
@@ -355,7 +353,7 @@
         document.getElementById("connect").disabled = true;
         document.getElementById("disconnect").style.display = "";
         status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)}`);
-        window.__signer = signer; // esponi il signer
+        window.__signer = signer; // expose signer for other buttons
         await refreshStats();
         subscribe();
       }catch(err){ status((err && (err.shortMessage || err.message)) || String(err), true); }
@@ -430,14 +428,11 @@
     document.getElementById("press").addEventListener("click", press);
   </script>
 
-  <!-- Farcaster Miniapp SDK — unica logica ibrida (riusa window.__fcsdk) -->
+  <!-- Farcaster Miniapp SDK — logica ibrida (riusa singleton) -->
   <script type="module">
-    // Riusa la singleton; se assente (edge case), importala ora
+    // riusa singleton SDK; importa solo se mancante (edge)
     let sdk = window.__fcsdk;
-    if (!sdk) {
-      const mod = await import('https://esm.sh/@farcaster/miniapp-sdk@latest');
-      sdk = mod.sdk; window.__fcsdk = sdk;
-    }
+    if (!sdk) { const mod = await import('https://esm.sh/@farcaster/miniapp-sdk@latest'); sdk = mod.sdk; window.__fcsdk = sdk; }
 
     const envLabel = document.getElementById('envLabel');
     const ctxLine = document.getElementById('ctxLine');
@@ -446,41 +441,32 @@
     const btnShare = document.getElementById('fcShare');
     const btnClose = document.getElementById('fcClose');
 
-    // --- ambiente ---
-    async function isMiniApp() { try { return !!(await sdk.context.get()); } catch { return false; } }
+    async function isMiniApp(){ try { return !!(await sdk.context.get()); } catch { return false; } }
     window.__isMiniApp = isMiniApp;
 
-    async function updateCtx() {
-      try {
+    async function updateCtx(){
+      try{
         const ctx = await sdk.context.get().catch(()=>null);
         if (ctx) {
           envLabel.textContent = 'miniapp';
           ctxLine.textContent = `user:${ctx?.user?.fid ?? '-'} • client:${ctx?.client?.platform ?? '-'} • frame:${ctx?.frame?.id ?? '-'}`;
-          btnShare.classList.remove('ghost'); btnClose.classList.remove('ghost');
+          btnShare.classList.remove('ghost');
+          btnClose.classList.remove('ghost');
         } else {
           envLabel.textContent = 'browser';
           ctxLine.textContent = 'running in normal web browser';
-          btnShare.classList.add('ghost'); btnClose.classList.add('ghost');
+          btnShare.classList.add('ghost');
+          btnClose.classList.add('ghost');
         }
-      } catch { envLabel.textContent = 'browser'; ctxLine.textContent = 'sdk context not available'; }
+      } catch {
+        envLabel.textContent = 'browser';
+        ctxLine.textContent = 'sdk context not available';
+      }
     }
+    window.addEventListener('load', updateCtx);
 
-    async function readyIfMiniApp() {
-      try {
-        if (window.__mini_ready_called) return;                 // evita doppio ready
-        if (await isMiniApp()) {
-          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-          await sdk.actions.ready({ disableNativeGestures: true });
-          window.__mini_ready_called = true;
-          console.log('✅ miniapp ready (late)');
-        }
-      } catch (e) { console.warn('miniapp ready failed', e); }
-    }
-
-    window.addEventListener('load', async () => { await updateCtx(); await readyIfMiniApp(); });
-
-    // --- provider universale + connect smart ---
-    async function getEthProviderForEnv(preferredBrowserProvider) {
+    // provider universale + connect smart
+    async function getEthProviderForEnv(preferredBrowserProvider){
       if (await isMiniApp()) return await sdk.wallet.getEthereumProvider();
       return preferredBrowserProvider || window.ethereum || null;
     }
@@ -491,21 +477,21 @@
       window.__signer = window.__signer || (typeof signer !== 'undefined' ? signer : undefined);
     };
 
-    // --- wiring del bottone Connect (ibrido) ---
+    // connect button: mini-app 1-click, browser modal
     document.getElementById("connect").addEventListener("click", async () => {
       try {
         if (await isMiniApp()) { await window.__connectSmart(); return; }
-        (window.openWalletModal || (()=>{}))(); // browser: apri modal
+        (window.openWalletModal || (()=>{}))();
       } catch (e) { (window.status || console.warn)(e?.message || String(e), true); }
     });
 
-    // --- azioni demo Farcaster ---
+    // Farcaster actions
     btnOpen.addEventListener('click', async () => {
       try {
         if (sdk?.actions?.openURL) {
           await sdk.actions.openURL('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c');
         } else {
-          window.open('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c','_blank');
+          window.open('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c', '_blank');
         }
       } catch(e){ console.warn(e); }
     });
