@@ -169,21 +169,16 @@
         <input id="tip" type="number" step="0.0001" min="0" placeholder="0 (free)" />
         <div class="note">Tipping speeds delivery. More tip → faster ETA.</div>
       </div>
-      <div class="row" style="justify-content:flex-end">
+            <div class="row" style="justify-content:flex-end">
         <button id="connect">Connect wallet</button>
-        <button id="fcConnect" class="ghost" style="display:none;">Connect Farcaster Wallet</button>
+        
         <button id="disconnect" class="ghost" style="display:none;">Disconnect</button>
       </div>
     </div>
 
     <button id="press" class="bigbutton">🍽️ Place order (on-chain)</button>
 
-    <div class="grid-cta">
-      <button id="fcOpen">Open in Wallet (Miniapp)</button>
-      <button id="fcSign">Request Signature</button>
-      <button id="fcShare" class="ghost">Share order (copy)</button>
-      <button id="fcClose" class="ghost">Close Miniapp</button>
-    </div>
+    <!-- RIMOSSI: Open in Wallet, Request Signature, Share order, Close Miniapp -->
 
     <div id="status" class="muted">Status: not connected.</div>
     <div class="feed" id="feed"></div>
@@ -194,22 +189,13 @@
     </div>
   </div>
 
-  <!-- Modal scelta wallet (EIP-6963) -->
-  <div id="walletModal" style="display:none; position:fixed; inset:0; backdrop-filter:blur(2px);
-    background:rgba(0,0,0,.35); align-items:center; justify-content:center; z-index:9999;">
-    <div style="background:#0b2f73; border:1px solid #184a9d; border-radius:16px; width:min(92vw,420px); padding:16px;">
-      <div style="font-weight:900; margin-bottom:8px;">Seleziona un wallet</div>
-      <div id="walletList" style="display:grid; gap:8px;"></div>
-      <div style="text-align:right; margin-top:10px;">
-        <button id="closeWalletModal" style="padding:10px 14px; font-weight:700;">Annulla</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Ethers v6 (UMD) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+  <!-- WalletConnect v2 UMD (Ethereum Provider + Modal) -->
+  <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.12.2/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/modal@2.6.2/dist/index.umd.js"></script>
 
-  <!-- App core (rete Base + EIP-6963 + contratto) -->
+  <!-- App core (rete Base + contratto, with multi-wallet incl. WalletConnect) -->
   <script>
     // ===== CONFIG =====
     const NET = {
@@ -239,6 +225,7 @@
     // ===== STATE & UTIL =====
     let provider, signer, contract, currentAccount, countdownTimer;
     let pressedListener = null;
+    let wcProvider; // WalletConnect provider (if used)
     const $ = id => document.getElementById(id);
     const statusEl = $("status"), feedEl = $("feed"), etaEl = $("eta");
     $("explorerLink").href = NET.explorerAddr + CONTRACT_ADDRESS;
@@ -266,41 +253,12 @@
       let s = sec; render(s);
       countdownTimer = setInterval(()=>{ s--; if(s<=0){ clearInterval(countdownTimer); etaEl.textContent = "arrived"; return; } render(s); }, 1000);
     }
-    function stopEtaCountdown(){ clearInterval(countdownTimer); const eta = document.getElementById('eta'); if (eta) eta.textContent = '—'; }
 
-    // ===== EIP-6963: multi-wallet discovery & selection (browser) =====
+    // ===== EIP-6963 discovery =====
     const ALLOWED_WALLETS_RDNS = ['io.metamask','com.coinbase.wallet','io.zerion.wallet','com.okex.wallet','com.okx.web3.wallet','me.rainbow','io.rabby'];
     const discovered = new Map();
-    const walletModal = document.getElementById('walletModal');
-    const walletList  = document.getElementById('walletList');
-    const closeWalletModalBtn = document.getElementById('closeWalletModal');
-
-    function openWalletModal(){
-      if (discovered.size === 0 && window.ethereum) { window.__connectSmart(window.ethereum); return; }
-      walletList.innerHTML = '';
-      const items = Array.from(discovered.values())
-        .filter(d => ALLOWED_WALLETS_RDNS.includes(d.info.rdns))
-        .sort((a,b) => a.info.name.localeCompare(b.info.name));
-
-      if (items.length === 0 && !window.ethereum) { status("Nessun wallet compatibile trovato.", true); return; }
-      if (items.length === 1) { window.__connectSmart(items[0].provider); return; }
-      for (const d of items) {
-        const btn = document.createElement('button');
-        btn.textContent = `${d.info.name}`;
-        btn.style = "text-align:left; padding:12px 14px; border-radius:12px; border:1px solid #184a9d; background:#07275f; color:#eef5ff; font-weight:800;";
-        btn.onclick = () => { closeWalletModal(); window.__connectSmart(d.provider); };
-        walletList.appendChild(btn);
-      }
-      walletModal.style.display = 'flex';
-    }
-    function closeWalletModal(){ walletModal.style.display = 'none'; }
-    window.openWalletModal = openWalletModal;
-    closeWalletModalBtn && (closeWalletModalBtn.onclick = closeWalletModal);
-
     window.addEventListener('eip6963:announceProvider', (event) => {
-      const detail = event.detail;
-      if (!detail || !detail.info || !detail.provider) return;
-      if (!discovered.has(detail.info.uuid)) discovered.set(detail.info.uuid, detail);
+      const d = event.detail; if (!d?.info?.uuid || !d.provider) return; if (!discovered.has(d.info.uuid)) discovered.set(d.info.uuid, d);
     });
     try { window.dispatchEvent(new Event('eip6963:requestProvider')); } catch(_) {}
 
@@ -313,130 +271,152 @@
           try{
             await providerEth.request({
               method:"wallet_addEthereumChain",
-              params:[{
-                chainId: NET.chainIdHex,
-                chainName: NET.name,
-                nativeCurrency: NET.currency,
-                rpcUrls: NET.rpcUrls,
-                blockExplorerUrls: [NET.blockExplorer]
-              }]
+              params:[{ chainId: NET.chainIdHex, chainName: NET.name, nativeCurrency: NET.currency, rpcUrls: NET.rpcUrls, blockExplorerUrls: [NET.blockExplorer] }]
             });
-          }catch(e2){ console.warn('addChain non supportato/negato:', e2?.message||e2); }
-        }else{
-          console.warn('switchChain non supportato/negato:', e?.message||e);
+          }catch(e2){ console.warn('addChain failed:', e2?.message||e2); }
+        } else {
+          console.warn('switchChain failed:', e?.message||e);
         }
       }
     }
 
-    // ===== Connect core =====
-    async function connectWithProvider(providerEth){
+    // ===== Connect flows =====
+    async function connectInjected(){
+      const first = Array.from(discovered.values()).find(d => ALLOWED_WALLETS_RDNS.includes(d.info.rdns))?.provider || window.ethereum;
+      if(!first) throw new Error('No injected wallet found');
+      await ensureBaseSelectedOn(first);
+      provider = new ethers.BrowserProvider(first);
+      try { await provider.send('eth_requestAccounts', []); } catch(_) {}
+      signer = await provider.getSigner();
+      currentAccount = await signer.getAddress();
+      afterConnect();
+    }
+
+    async function connectWalletConnect(){
       try{
-        await ensureBaseSelectedOn(providerEth); // best-effort, non blocca
-        provider = new ethers.BrowserProvider(providerEth);
-        try { await provider.send("eth_requestAccounts", []); } catch(e){ console.warn('eth_requestAccounts:', e?.message||e); }
-        const net = await provider.getNetwork().catch(()=>({chainId:0n}));
+        const EthereumProvider = (window.WalletConnectProvider && window.WalletConnectProvider.EthereumProvider) || window.EthereumProvider || (window["@walletconnect/ethereum-provider"] && window["@walletconnect/ethereum-provider"].EthereumProvider);
+        if (!EthereumProvider) throw new Error('WalletConnect EthereumProvider not available');
+        wcProvider = await EthereumProvider.init({
+          projectId: 'YOUR_WALLETCONNECT_PROJECT_ID', // TODO: replace
+          chains: [8453], // Base mainnet
+          showQrModal: true,
+          metadata: { name: 'Based Pasta Ristorante', description: 'Order free pasta NFTs on Base', url: location.origin, icons: ['https://mikeminer.github.io/basedrestaurant/splash-200.png'] }
+        });
+        await wcProvider.enable();
+        await ensureBaseSelectedOn(wcProvider);
+        provider = new ethers.BrowserProvider(wcProvider);
         signer = await provider.getSigner();
         currentAccount = await signer.getAddress();
-        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+        afterConnect();
+      }catch(e){ status('WalletConnect error: ' + (e?.message||e), true); }
+    }
 
-        const connectBtn = document.getElementById("connect");
-        const fcBtn = document.getElementById("fcConnect");
-        connectBtn.textContent = "Connected";
-        connectBtn.disabled = true;
-        connectBtn.style.display = "none";
-        if (fcBtn) { fcBtn.textContent = "Connected to Farcaster"; fcBtn.disabled = true; fcBtn.classList.add('ghost'); }
+    function setButtonsConnected(){
+      const btnC = document.getElementById('connect');
+      const btnWC = 
+      btnC.textContent = 'Connected'; btnC.disabled = true; btnC.classList.add('ghost');
+      btnWC.classList.add('ghost'); btnWC.disabled = true;
+      document.getElementById('disconnect').style.display = '';
+    }
 
-        document.getElementById("disconnect").style.display = "";
-        status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)}${net?.chainId?` (chain ${net.chainId})`:''}`);
-        window.__signer = signer;
-        await refreshStats();
-        subscribe();
-      }catch(err){ status((err && (err.shortMessage || err.message)) || String(err), true); }
+    function afterConnect(){
+      contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+      setButtonsConnected();
+      status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)} (Base)`);
+      refreshStats();
+      subscribe();
     }
 
     function subscribe(){
-      pressedListener = (user, totalPresses, userPresses, message, tip) => {
-        addFeedItem({
-          user,
-          total: totalPresses.toString(),
-          userPresses: userPresses.toString(),
-          message,
-          tip: tip ? ethers.formatEther(tip) + " ETH" : "0"
-        });
-        document.getElementById("totalPresses").textContent = totalPresses.toString();
-        if(currentAccount && user.toLowerCase() === currentAccount.toLowerCase()){
-          document.getElementById("yourPresses").textContent = userPresses.toString();
+      try{
+        if (contract && !pressedListener){
+          pressedListener = (user, totalPresses, userPresses, message, tip) => {
+            addFeedItem({ user, total: totalPresses.toString(), userPresses: userPresses.toString(), message, tip: tip ? ethers.formatEther(tip) + ' ETH' : '0' });
+            document.getElementById('totalPresses').textContent = totalPresses.toString();
+            if(currentAccount && user.toLowerCase() === currentAccount.toLowerCase()){
+              document.getElementById('yourPresses').textContent = userPresses.toString();
+            }
+          };
+          contract.on('Pressed', pressedListener);
         }
-      };
-      contract.on("Pressed", pressedListener);
+      }catch(e){ console.warn('subscribe failed', e); }
+    }
+
+    function unsubscribe(){
+      try{ if (contract && pressedListener) { contract.off('Pressed', pressedListener); } } catch(_) {}
+      pressedListener = null;
     }
 
     function disconnect(){
       try{
-        if (contract && pressedListener) { try { contract.off("Pressed", pressedListener); } catch(_) {} }
-        stopEtaCountdown();
-        provider = signer = contract = currentAccount = undefined; pressedListener = null;
-        const connectBtn = document.getElementById("connect");
-        connectBtn.textContent = "Connect wallet"; connectBtn.disabled = false; connectBtn.style.display = "";
-        const fcBtn = document.getElementById("fcConnect");
-        if (fcBtn) { fcBtn.textContent = "Connect Farcaster Wallet"; fcBtn.disabled = false; fcBtn.style.display = ""; fcBtn.classList.remove('ghost'); }
-        document.getElementById("disconnect").style.display = "none";
-        window.__signer = undefined;
-        status("Disconnected.");
-      }catch(err){ status("Disconnect error: " + ((err && err.message) || String(err)), true); }
+        unsubscribe();
+        if (wcProvider?.disconnect) { try { wcProvider.disconnect(); } catch(_) {} }
+      } finally {
+        provider = signer = contract = currentAccount = undefined; wcProvider = undefined;
+        const btnC = document.getElementById('connect'); btnC.textContent = 'Connect wallet'; btnC.disabled = false; btnC.classList.remove('ghost');
+        const btnWC =  btnWC.disabled = false; btnWC.classList.remove('ghost');
+        document.getElementById('disconnect').style.display = 'none';
+        status('Disconnected.');
+        document.getElementById('yourPresses').textContent = '—';
+      }
     }
 
     async function refreshStats(){
-      if(!contract) return;
-      const [total, mine, cd] = await Promise.all([
-        contract.totalPresses(),
-        currentAccount ? contract.presses(currentAccount) : 0,
-        contract.cooldownSeconds()
-      ]);
-      document.getElementById("totalPresses").textContent = total.toString();
-      document.getElementById("yourPresses").textContent = mine.toString();
-      document.getElementById("cooldown").textContent = cd.toString() + "s";
+      try{
+        const ro = provider ? provider : new ethers.JsonRpcProvider(NET.rpcUrls[0]);
+        const ctr = new ethers.Contract(CONTRACT_ADDRESS, ABI, ro);
+        const [total, mine, cd] = await Promise.all([
+          ctr.totalPresses(),
+          currentAccount ? ctr.presses(currentAccount) : 0,
+          ctr.cooldownSeconds()
+        ]);
+        document.getElementById('totalPresses').textContent = total.toString();
+        document.getElementById('yourPresses').textContent = currentAccount ? mine.toString() : '—';
+        document.getElementById('cooldown').textContent = cd.toString() + 's';
+      } catch(e){ console.warn('refreshStats', e); }
     }
 
     function buildOnchainMessage(){
-      const dishObj = JSON.parse(document.getElementById("dish").value);
-      const note = document.getElementById("message").value.trim();
+      const dishObj = JSON.parse(document.getElementById('dish').value);
+      const note = document.getElementById('message').value.trim();
       const base = `ORDER:${dishObj.name}|NFT:${dishObj.nft}`;
       const withNote = note ? `${base}|NOTE:${note}` : base;
       return withNote.length > 64 ? withNote.slice(0,64) : withNote;
     }
 
     async function press(){
-      if(!contract) return status("Connect your wallet first.", true);
+      if(!contract || !signer) return status('Connect your wallet first.', true);
       try{
         const msg = buildOnchainMessage();
-        const tipEth = document.getElementById("tip").value ? document.getElementById("tip").value.trim() : "0";
-        const tx = await contract.press(msg, { value: ethers.parseEther(tipEth || "0") });
+        const tipEth = document.getElementById('tip').value ? document.getElementById('tip').value.trim() : '0';
+        const tx = await contract.press(msg, { value: ethers.parseEther(tipEth || '0') });
         const etaSeconds = computeEtaSeconds(tipEth);
         startEtaCountdown(etaSeconds);
-        status("Transaction sent… waiting for confirmation");
+        status('Transaction sent… waiting for confirmation');
         await tx.wait();
-        status("🍝 Order placed! Buon appetito.");
-      }catch(err){ const reason = (err && (err.shortMessage || err.message)) || String(err); status("Error: " + reason, true); }
+        status('🍝 Order placed! Buon appetito.');
+        await refreshStats();
+      }catch(err){ const reason = (err && (err.shortMessage || err.message)) || String(err); status('Error: ' + reason, true); }
     }
 
-    document.getElementById("disconnect").addEventListener("click", disconnect);
-    document.getElementById("press").addEventListener("click", press);
+    document.getElementById('connect').addEventListener('click', async () => {
+      try{ await connectInjected(); }catch(e){ status('No injected wallet. Use WalletConnect.', true); }
+    });
+    
+    document.getElementById('disconnect').addEventListener('click', disconnect);
+    document.getElementById('press').addEventListener('click', press);
+
+    // Init read-only for stats
+    window.addEventListener('load', refreshStats);
   </script>
 
-  <!-- Farcaster Miniapp SDK — auto/mannual connect in mini-app -->
+  <!-- Farcaster Miniapp SDK — solo rilevazione contesto; bottoni miniapp rimossi -->
   <script type="module">
-    // riusa singleton SDK
     let sdk = window.__fcsdk;
     if (!sdk) { const mod = await import('https://esm.sh/@farcaster/miniapp-sdk@latest'); sdk = mod.sdk; window.__fcsdk = sdk; }
 
     const envLabel = document.getElementById('envLabel');
     const ctxLine = document.getElementById('ctxLine');
-    const btnOpen = document.getElementById('fcOpen');
-    const btnSign = document.getElementById('fcSign');
-    const btnShare = document.getElementById('fcShare');
-    const btnClose = document.getElementById('fcClose');
-    const btnFcConnect = document.getElementById('fcConnect');
 
     async function inMini(){ try { return await sdk.isInMiniApp(); } catch { return false; } }
 
@@ -446,101 +426,17 @@
           const ctx = await sdk.context.get().catch(()=>null);
           envLabel.textContent = 'miniapp';
           ctxLine.textContent = ctx ? `user:${ctx?.user?.fid ?? '-'} • client:${ctx?.client?.platform ?? '-'} • frame:${ctx?.frame?.id ?? '-'}` : 'miniapp context';
-          btnShare.classList.remove('ghost'); btnClose.classList.remove('ghost');
-          // mostra il bottone dedicato Farcaster
-          btnFcConnect.style.display = "";
-          btnFcConnect.classList.remove('ghost');
         } else {
           envLabel.textContent = 'browser';
           ctxLine.textContent = 'running in normal web browser';
-          btnShare.classList.add('ghost'); btnClose.classList.add('ghost');
-          btnFcConnect.style.display = "none";
         }
       } catch {
         envLabel.textContent = 'browser';
         ctxLine.textContent = 'sdk context not available';
-        btnFcConnect.style.display = "none";
       }
     }
 
-    // provider mini-app
-    async function getMiniProvider(){
-      // molti host richiedono prima la richiesta di indirizzi
-      try { await sdk.wallet.requestAddresses(); } catch(e){ console.warn('requestAddresses:', e?.message||e); }
-      return await sdk.wallet.getEthereumProvider();
-    }
-
-    // auto-connect in mini-app (best effort)
-    let autoDone = false;
-    async function autoConnectMini(){
-      if (autoDone) return;
-      if (!(await inMini())) return;
-      try {
-        const ethProv = await getMiniProvider();
-        if (!ethProv) throw new Error('Miniapp provider non disponibile');
-        await connectWithProvider(ethProv);
-        autoDone = true;
-      } catch (e) {
-        console.warn('Auto-connect miniapp failed:', e?.message||e);
-      }
-    }
-
-    window.addEventListener('load', async () => {
-      await updateCtx();
-      autoConnectMini();
-      setTimeout(autoConnectMini, 400); // retry leggero
-    });
-
-    // bottone "Connect Farcaster Wallet"
-    btnFcConnect.addEventListener('click', async () => {
-      try{
-        if (!(await inMini())) return; // sicurezza
-        const ethProv = await getMiniProvider();
-        if (!ethProv) throw new Error('Miniapp provider non disponibile');
-        await connectWithProvider(ethProv);
-      }catch(e){ (window.status || console.warn)('FC connect: ' + (e?.message || String(e)), true); }
-    });
-
-    // bottone generico "Connect wallet"
-    document.getElementById("connect").addEventListener("click", async () => {
-      try {
-        if (await inMini()) { btnFcConnect.click(); return; } // in mini: usa flusso Farcaster
-        (window.openWalletModal || (()=>{}))();                // in browser: modal 6963
-      } catch (e) { (window.status || console.warn)(e?.message || String(e), true); }
-    });
-
-    // azioni Farcaster demo
-    btnOpen.addEventListener('click', async () => {
-      try {
-        if (sdk?.actions?.openURL) {
-          await sdk.actions.openURL('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c');
-        } else {
-          window.open('https://basescan.org/address/0x18b1119706520839E2aa632191331A94A673F00c','_blank');
-        }
-      } catch(e){ console.warn(e); }
-    });
-
-    btnSign.addEventListener('click', async () => {
-      try{
-        if (window.__signer) {
-          const msg = 'Based Pasta — buon appetito!';
-          const sig = await window.__signer.signMessage(msg);
-          alert('Signature obtained!\n' + sig.slice(0,42) + '…');
-        } else {
-          alert('Connect a wallet first to sign.');
-        }
-      }catch(e){ alert('Sign error: '+(e?.message||e)); }
-    });
-
-    btnShare.addEventListener('click', async () => {
-      try{ await navigator.clipboard.writeText('🍝 I just ordered free pasta on Base! #BasedPasta'); alert('Copied share text to clipboard!'); }
-      catch(e){ alert('Copy failed.'); }
-    });
-
-    btnClose.addEventListener('click', async () => {
-      try{ if (sdk?.actions?.close) await sdk.actions.close(); else alert('Close action is only available inside Warpcast.'); }
-      catch(e){ console.warn(e); }
-    });
+    window.addEventListener('load', updateCtx);
   </script>
 </body>
 </html>
