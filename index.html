@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- Mini App embed (preview + CTA) -->
   <meta name="fc:miniapp" content='{
     "version":"1",
     "imageUrl":"https://mikeminer.github.io/basedrestaurant/og-1200x630.png",
@@ -28,9 +29,10 @@
     *{box-sizing:border-box}
     body{
       margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-      background: radial-gradient(1200px 800px at 20% 10%, rgba(38,97,255,.25), transparent 50%),
-                  radial-gradient(1000px 900px at 80% 90%, rgba(15,92,255,.18), transparent 55%),
-                  linear-gradient(160deg, var(--bg1), var(--bg2));
+      background:
+        radial-gradient(1200px 800px at 20% 10%, rgba(38,97,255,.25), transparent 50%),
+        radial-gradient(1000px 900px at 80% 90%, rgba(15,92,255,.18), transparent 55%),
+        linear-gradient(160deg, var(--bg1), var(--bg2));
       color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
     .card{
@@ -51,10 +53,7 @@
     .brand{ font-weight:900; letter-spacing:.3px; font-size:20px; }
     .link{ color:var(--muted); text-decoration:none; font-size:13px; }
     .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-    .stat{
-      background:rgba(1,28,84,.45); border:1px solid var(--panelBorder); border-radius:14px; padding:12px;
-      text-align:center; backdrop-filter: blur(6px);
-    }
+    .stat{ background:rgba(1,28,84,.45); border:1px solid var(--panelBorder); border-radius:14px; padding:12px; text-align:center; backdrop-filter: blur(6px); }
     .stat .label{ font-size:12px; color:var(--muted); }
     .stat .value{ font-size:22px; font-weight:800; letter-spacing:.4px; }
     .cta{ display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:end; margin:18px 0 10px; }
@@ -73,28 +72,15 @@
     }
     button:hover{ transform: translateY(-1px); filter:saturate(1.1); }
     button:active{ transform: translateY(1px) scale(.99); }
-    .bigbutton{
-      width:100%; margin:12px 0 8px; padding:24px 28px; font-size:22px;
-      animation:pulse 1.9s infinite;
-    }
-    @keyframes pulse{
-      0%{ box-shadow:0 0 0 0 rgba(113,168,255,.45); }
-      70%{ box-shadow:0 0 0 18px rgba(113,168,255,0); }
-      100%{ box-shadow:0 0 0 0 rgba(113,168,255,0); }
-    }
+    .bigbutton{ width:100%; margin:12px 0 8px; padding:24px 28px; font-size:22px; animation:pulse 1.9s infinite; }
+    @keyframes pulse{ 0%{ box-shadow:0 0 0 0 rgba(113,168,255,.45);} 70%{ box-shadow:0 0 0 18px rgba(113,168,255,0);} 100%{ box-shadow:0 0 0 0 rgba(113,168,255,0);} }
     .muted{ color:var(--muted); font-size:12px; }
     .ok{ color:var(--success); }
     .err{ color:var(--error); }
-    .feed{
-      margin-top:16px; max-height:330px; overflow:auto; padding:10px;
-      background:rgba(3,25,73,.55); border:1px solid var(--panelBorder); border-radius:14px; backdrop-filter: blur(6px);
-    }
+    .feed{ margin-top:16px; max-height:330px; overflow:auto; padding:10px; background:rgba(3,25,73,.55); border:1px solid var(--panelBorder); border-radius:14px; backdrop-filter: blur(6px); }
     .item{ padding:10px 8px; border-bottom:1px dashed rgba(122,165,255,.35); font-size:14px; display:flex; justify-content:space-between; gap:12px; }
     .item:last-child{ border-bottom:none; }
-    .netbadge{
-      font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--panelBorder);
-      background:rgba(7,39,95,.6); color:#a9c4ff;
-    }
+    .netbadge{ font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--panelBorder); background:rgba(7,39,95,.6); color:#a9c4ff; }
     .note{ font-size:12px; color:#dfe9ff; margin-top:4px; }
     .eta{ font-weight:700; letter-spacing:.3px; }
     .ghost{ opacity:.5; filter:saturate(.75); }
@@ -105,34 +91,21 @@
 </head>
 <body>
 
-  <!-- Farcaster Miniapp: ready() ASAP + retries (singleton) -->
+  <!-- Mini App: call ready() ASAP with retries -->
   <script type="module">
-    import { sdk as _sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest';
-    if (!window.__fcsdk) window.__fcsdk = _sdk;
-    const sdk = window.__fcsdk;
+    import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@latest';
+    if (!window.__fcsdk) window.__fcsdk = sdk;
 
-    if (!window.__mini_ready_called) window.__mini_ready_called = false;
-
-    async function tryReady(tag){
-      if (window.__mini_ready_called) return true;
-      try {
-        await sdk.actions.ready();
-        window.__mini_ready_called = true;
-        console.log('✅ ready()', tag);
-        return true;
-      } catch (e) {
-        console.warn('⚠️ ready() failed —', tag, e?.message || e);
-        try { await sdk.actions.hideSplashScreen?.(); } catch(_) {}
-        return false;
-      }
+    let readyDone = false;
+    async function callReady(tag){
+      if (readyDone) return;
+      try { await window.__fcsdk.actions.ready(); readyDone = true; console.log('✅ ready()', tag); }
+      catch(e){ console.warn('ready() failed', tag, e?.message||e); }
     }
-    tryReady('immediate');
-    setTimeout(()=>tryReady('retry-150ms'),150);
-    setTimeout(()=>tryReady('retry-500ms'),500);
-    setTimeout(()=>tryReady('retry-1000ms'),1000);
-    setTimeout(()=>tryReady('retry-2000ms'),2000);
-    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') tryReady('visibilitychange'); });
-    window.__miniappReady = ()=>tryReady('manual');
+    callReady('immediate');
+    setTimeout(()=>callReady('150ms'),150);
+    setTimeout(()=>callReady('500ms'),500);
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') callReady('visible'); });
   </script>
 
   <div class="card">
@@ -215,14 +188,14 @@
     </div>
   </div>
 
-  <!-- Ethers v6 (UMD) -->
+  <!-- Ethers v6 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
 
-  <!-- App core (rete Base + EIP-6963 + contratto) -->
+  <!-- App core: Base + EIP-6963 + contratto -->
   <script>
     // ===== CONFIG =====
     const NET = {
-      chainIdHex: "0x2105", // 8453
+      chainIdHex: "0x2105", // 8453 Base
       name: "Base",
       currency: { name: "ETH", symbol: "ETH", decimals: 18 },
       rpcUrls: ["https://mainnet.base.org"],
@@ -245,12 +218,13 @@
       {"inputs":[],"name":"totalPresses","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
     ];
 
-    // ===== STATE & UTIL =====
+    // ===== STATE =====
     let provider, signer, contract, currentAccount, countdownTimer, pressedListener = null;
     const $ = id => document.getElementById(id);
     const statusEl = $("status"), feedEl = $("feed"), etaEl = $("eta");
     $("explorerLink").href = NET.explorerAddr + CONTRACT_ADDRESS;
 
+    // ===== UI helpers =====
     function status(t, err=false){ statusEl.textContent = "Status: " + t; statusEl.className = err ? "err" : "ok"; }
     function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[s])); }
     function addFeedItem({user,total,userPresses,message,tip}){
@@ -286,7 +260,9 @@
     function openWalletModal(){
       if (discovered.size === 0 && window.ethereum) { window.__connectSmart(window.ethereum); return; }
       walletList.innerHTML = '';
-      const items = Array.from(discovered.values()).filter(d => ALLOWED_WALLETS_RDNS.includes(d.info.rdns)).sort((a,b)=>a.info.name.localeCompare(b.info.name));
+      const items = Array.from(discovered.values())
+        .filter(d => ALLOWED_WALLETS_RDNS.includes(d.info.rdns))
+        .sort((a,b)=>a.info.name.localeCompare(b.info.name));
       if (items.length === 0 && !window.ethereum) { status("Nessun wallet compatibile trovato.", true); return; }
       if (items.length === 1) { window.__connectSmart(items[0].provider); return; }
       for (const d of items) {
@@ -301,6 +277,7 @@
     function closeWalletModal(){ walletModal.style.display = 'none'; }
     window.openWalletModal = openWalletModal;
     closeWalletModalBtn && (closeWalletModalBtn.onclick = closeWalletModal);
+
     window.addEventListener('eip6963:announceProvider', (event) => {
       const detail = event.detail;
       if (!detail || !detail.info || !detail.provider) return;
@@ -308,6 +285,7 @@
     });
     try { window.dispatchEvent(new Event('eip6963:requestProvider')); } catch(_) {}
 
+    // ===== chain helpers =====
     async function ensureBaseSelectedOn(providerEth){
       try{
         await providerEth.request({ method:"wallet_switchEthereumChain", params:[{ chainId: NET.chainIdHex }] });
@@ -331,11 +309,12 @@
       }
     }
 
+    // ===== connect core =====
     async function connectWithProvider(providerEth){
       try{
-        await ensureBaseSelectedOn(providerEth);
+        await ensureBaseSelectedOn(providerEth); // best-effort
         provider = new ethers.BrowserProvider(providerEth);
-        try { await provider.send("eth_requestAccounts", []); } catch (e) { console.warn('eth_requestAccounts fallback:', e?.message||e); }
+        try { await provider.send("eth_requestAccounts", []); } catch(e){ console.warn('eth_requestAccounts:', e?.message||e); }
         const net = await provider.getNetwork().catch(()=>({chainId:0n}));
         signer = await provider.getSigner();
         currentAccount = await signer.getAddress();
@@ -344,7 +323,7 @@
         const connectBtn = document.getElementById("connect");
         connectBtn.textContent = "Connected";
         connectBtn.disabled = true;
-        connectBtn.style.display = "none";       // nascondi se connesso
+        connectBtn.style.display = "none";
         document.getElementById("disconnect").style.display = "";
 
         status(`Connected: ${currentAccount.slice(0,6)}…${currentAccount.slice(-4)}${net?.chainId?` (chain ${net.chainId})`:''}`);
@@ -412,12 +391,14 @@
       }catch(err){ const reason = (err && (err.shortMessage || err.message)) || String(err); status("Error: " + reason, true); }
     }
 
+    // Bind
     document.getElementById("disconnect").addEventListener("click", disconnect);
     document.getElementById("press").addEventListener("click", press);
   </script>
 
-  <!-- Farcaster Miniapp SDK — auto-connect in mini-app + 1-click; browser = modal 6963 -->
+  <!-- Mini App SDK: auto-connect in mini app, modal 6963 in browser -->
   <script type="module">
+    // load sdk (reuse if already loaded)
     let sdk = window.__fcsdk;
     if (!sdk) { const mod = await import('https://esm.sh/@farcaster/miniapp-sdk@latest'); sdk = mod.sdk; window.__fcsdk = sdk; }
 
@@ -428,61 +409,71 @@
     const btnShare = document.getElementById('fcShare');
     const btnClose = document.getElementById('fcClose');
 
-    async function isMiniApp(){ try { return !!(await sdk.context.get()); } catch { return false; } }
-    window.__isMiniApp = isMiniApp;
+    // detect environment (official helper)
+    async function inMini(){ try { return await sdk.isInMiniApp(); } catch { return false; } }
 
     async function updateCtx(){
       try{
-        const ctx = await sdk.context.get().catch(()=>null);
-        if (ctx) {
+        if (await inMini()) {
+          const ctx = await sdk.context.get().catch(()=>null);
           envLabel.textContent = 'miniapp';
-          ctxLine.textContent = `user:${ctx?.user?.fid ?? '-'} • client:${ctx?.client?.platform ?? '-'} • frame:${ctx?.frame?.id ?? '-'}`;
+          ctxLine.textContent = ctx ? `user:${ctx?.user?.fid ?? '-'} • client:${ctx?.client?.platform ?? '-'} • frame:${ctx?.frame?.id ?? '-'}` : 'miniapp context';
           btnShare.classList.remove('ghost'); btnClose.classList.remove('ghost');
         } else {
           envLabel.textContent = 'browser';
           ctxLine.textContent = 'running in normal web browser';
           btnShare.classList.add('ghost'); btnClose.classList.add('ghost');
         }
-      } catch {
-        envLabel.textContent = 'browser';
-        ctxLine.textContent = 'sdk context not available';
-      }
+      } catch { envLabel.textContent = 'browser'; ctxLine.textContent = 'sdk context not available'; }
     }
 
-    // === AUTO-CONNECT in mini-app ===
-    let __autoConnectDone = false;
-    async function autoConnectMiniApp(){
-      if (__autoConnectDone) return;
-      if (!(await isMiniApp())) return;
+    // smart provider per env
+    async function getProvider(preferredBrowserProvider){
+      if (await inMini()) {
+        // provider EIP-1193 del wallet Farcaster
+        return await sdk.wallet.getEthereumProvider();
+      }
+      return preferredBrowserProvider || window.ethereum || null;
+    }
+
+    // connect smart (miniapp = 1-click / auto; browser = modal 6963)
+    window.__connectSmart = async (preferredBrowserProvider) => {
+      const ethProv = await getProvider(preferredBrowserProvider);
+      if (!ethProv) throw new Error('Nessun provider Ethereum disponibile');
+      await connectWithProvider(ethProv);
+    };
+
+    // AUTO-CONNECT quando siamo dentro la mini app
+    let autoConnected = false;
+    async function autoConnectMini(){
+      if (autoConnected) return;
+      if (!(await inMini())) return;
       try {
-        // 1) chiedi permesso indirizzi (alcuni host lo richiedono esplicitamente)
-        try { await sdk.wallet.requestAddresses(); } catch(e){ console.warn('requestAddresses:', e?.message||e); }
-        // 2) prendi provider EIP-1193 della mini-app
         const ethProv = await sdk.wallet.getEthereumProvider();
         if (!ethProv) throw new Error('Miniapp provider non disponibile');
-        // 3) connetti via ethers (switch chain best-effort)
         await connectWithProvider(ethProv);
-        __autoConnectDone = true;
+        autoConnected = true;
       } catch (e) {
         console.warn('Auto-connect miniapp failed:', e?.message||e);
       }
     }
 
+    // on load: update context + auto-connect (mini app)
     window.addEventListener('load', async () => {
       await updateCtx();
-      autoConnectMiniApp();              // parte subito
-      setTimeout(autoConnectMiniApp, 500);  // piccolo retry
+      autoConnectMini();
+      setTimeout(autoConnectMini, 400); // piccolo retry
     });
 
-    // === Connect button: mini-app 1-click, browser modal ===
+    // Connect button handler
     document.getElementById("connect").addEventListener("click", async () => {
       try {
-        if (await isMiniApp()) { await autoConnectMiniApp(); return; }
+        if (await inMini()) { await autoConnectMini(); return; }
         (window.openWalletModal || (()=>{}))();
       } catch (e) { (window.status || console.warn)(e?.message || String(e), true); }
     });
 
-    // === Azioni Farcaster di esempio ===
+    // Farcaster actions demo
     btnOpen.addEventListener('click', async () => {
       try {
         if (sdk?.actions?.openURL) {
