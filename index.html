@@ -281,6 +281,15 @@
     }
 
     // ===== Connect flows =====
+    async function connectWithProvider(providerEth){
+      await ensureBaseSelectedOn(providerEth);
+      provider = new ethers.BrowserProvider(providerEth);
+      try { await provider.send('eth_requestAccounts', []); } catch(_) {}
+      signer = await provider.getSigner();
+      currentAccount = await signer.getAddress();
+      afterConnect();
+    }
+
     async function connectInjected(){
       const first = Array.from(discovered.values()).find(d => ALLOWED_WALLETS_RDNS.includes(d.info.rdns))?.provider || window.ethereum;
       if(!first) throw new Error('No injected wallet found');
@@ -400,7 +409,10 @@
     }
 
     document.getElementById('connect').addEventListener('click', async () => {
-      try{ await connectInjected(); }catch(e){ status('No injected wallet. Use WalletConnect.', true); }
+      try { if (window.__connectMiniapp) { const ok = await window.__connectMiniapp(); if (ok) return; } } catch(_) {}
+      try { await connectInjected(); }
+      catch(e){ status('No wallet found. Open with a browser wallet (e.g., MetaMask, Coinbase Wallet, Rabby).', true); }
+    }); }catch(e){ status('No injected wallet. Use WalletConnect.', true); }
     });
     
     document.getElementById('disconnect').addEventListener('click', disconnect);
@@ -410,7 +422,7 @@
     window.addEventListener('load', refreshStats);
   </script>
 
-  <!-- Farcaster Miniapp SDK — solo rilevazione contesto; bottoni miniapp rimossi -->
+  <!-- Farcaster Miniapp SDK — rilevazione contesto + auto-connect provider miniapp -->
   <script type="module">
     let sdk = window.__fcsdk;
     if (!sdk) { const mod = await import('https://esm.sh/@farcaster/miniapp-sdk@latest'); sdk = mod.sdk; window.__fcsdk = sdk; }
@@ -436,7 +448,28 @@
       }
     }
 
-    window.addEventListener('load', updateCtx);
+    async function getMiniProvider(){
+      try { await sdk.wallet.requestAddresses(); } catch (_) {}
+      try { return await sdk.wallet.getEthereumProvider(); } catch { return null; }
+    }
+
+    // Expose a connect helper so the main script can try mini first when clicking
+    window.__connectMiniapp = async () => {
+      try{
+        if (!(await inMini())) return false;
+        const ethProv = await getMiniProvider();
+        if (!ethProv) { status('Miniapp wallet not available. Open in Warpcast with an enabled wallet.', true); return false; }
+        await connectWithProvider(ethProv);
+        return true;
+      }catch(e){ status('Farcaster connect error: ' + (e?.message||e), true); return false; }
+    };
+
+    window.addEventListener('load', async () => {
+      await updateCtx();
+      // Try auto-connect when inside miniapp
+      try { if (await inMini()) { await window.__connectMiniapp(); } } catch(_) {}
+    });
+  </script>
   </script>
 </body>
 </html>
