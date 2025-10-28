@@ -471,5 +471,19 @@
     // Expose signer from ethers part if present
     Object.defineProperty(window, 'signer', { get(){ return (window).signer || undefined; }, configurable:true });
   </script>
+  <script type="module">
+  import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk';
+
+  window.addEventListener('load', async () => {
+    try {
+      // metti qui eventuale init app, se serve…
+      await sdk.actions.ready();
+      console.log('✅ Miniapp ready — splash hidden');
+    } catch (e) {
+      console.warn('sdk.ready failed', e);
+    }
+  });
+</script>
+
 </body>
 </html>
