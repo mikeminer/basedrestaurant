@@ -262,6 +262,39 @@
     });
     try { window.dispatchEvent(new Event('eip6963:requestProvider')); } catch(_) {}
 
+    // ===== Wallet selection modal (injected wallets) =====
+    const walletModal = document.getElementById('walletModal');
+    const walletList  = document.getElementById('walletList');
+    const closeWalletModalBtn = document.getElementById('closeWalletModal');
+
+    function closeWalletModal(){ if (walletModal) walletModal.style.display = 'none'; }
+    closeWalletModalBtn && (closeWalletModalBtn.onclick = closeWalletModal);
+
+    window.__connectSmart = async (prov) => { try { await connectWithProvider(prov); } catch(e){ status((e?.message||String(e)), true); } };
+
+    function openWalletModal(){
+      // Build list of allowed discovered providers
+      const items = Array.from(discovered.values()).filter(d => ALLOWED_WALLETS_RDNS.includes(d.info.rdns));
+      if (items.length === 0){
+        // Fallback to window.ethereum if available
+        if (window.ethereum){ return window.__connectSmart(window.ethereum); }
+        status('No compatible injected wallet found. Install MetaMask, Rabby, Zerion, Coinbase Wallet…', true);
+        return;
+      }
+      if (items.length === 1){ return window.__connectSmart(items[0].provider); }
+      if (!walletModal || !walletList){ return window.__connectSmart(items[0].provider); }
+      walletList.innerHTML = '';
+      for (const d of items){
+        const btn = document.createElement('button');
+        btn.textContent = d.info.name;
+        btn.style = 'text-align:left; padding:12px 14px; border-radius:12px; border:1px solid #184a9d; background:#07275f; color:#eef5ff; font-weight:800;';
+        btn.onclick = () => { closeWalletModal(); window.__connectSmart(d.provider); };
+        walletList.appendChild(btn);
+      }
+      walletModal.style.display = 'flex';
+    }
+    window.openWalletModal = openWalletModal;
+
     // ===== Chain helpers =====
     async function ensureBaseSelectedOn(providerEth){
       try{
@@ -410,6 +443,9 @@
 
     document.getElementById('connect').addEventListener('click', async () => {
       try { if (window.__connectMiniapp) { const ok = await window.__connectMiniapp(); if (ok) return; } } catch(_) {}
+      try { window.openWalletModal ? window.openWalletModal() : await connectInjected(); }
+      catch(e){ status('No wallet found. Install MetaMask, Rabby, Zerion, Coinbase Wallet.', true); }
+    }); if (ok) return; } } catch(_) {}
       try { await connectInjected(); }
       catch(e){ status('No wallet found. Open with a browser wallet (e.g., MetaMask, Coinbase Wallet, Rabby).', true); }
     }); }catch(e){ status('No injected wallet. Use WalletConnect.', true); }
