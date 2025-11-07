@@ -61,9 +61,8 @@ No build tools required.
 ---
 
 ## 🧠 Notes
-- The current smart contract address in the demo is static (`0x37e3a8d3ba53f43d955F83B54cBE4C0d39A10b83`). Replace it with your own when deploying.
-- To integrate real contract logic, replace the mock `press()` function with your own write interaction.
-- ENS resolution and BaseScan links are auto-generated.
+- The current smart contract address is  (`0x18b1119706520839E2aa632191331A94A673F00c`).
+
 
 ---
 
