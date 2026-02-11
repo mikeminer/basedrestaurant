@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.3.0",
+  "name": "cameriere",
+  "description": "Autonomous restaurant waiter agent providing structured service interaction, coordination, and paid requests via x402.",
+  "url": "https://mikeminer.github.io/basedrestaurant/",
+  "endpoints": {
+    "a2a": "https://mikeminer.github.io/basedrestaurant/a2a"
+  },
+  "capabilities": {
+    "streaming": true,
+    "tools": true,
+    "handoff": true
+  },
+  "auth": {
+    "type": "x402"
+  },
+  "payment": {
+    "enabled": true,
+    "network": "base"
+  },
+  "supported_content_types": [
+    "application/json",
+    "text/plain"
+  ],
+  "privacy": {
+    "data_retention": "minimal",
+    "logs": "operational-only"
+  }
+}
